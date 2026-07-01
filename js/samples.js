@@ -29,13 +29,15 @@
           '<button class="btn btn-secondary btn-sm" data-act="sp-edit" data-id="' + escHtml(sp.sample_id) + '">수정</button>' +
           '<button class="btn btn-danger btn-sm" data-act="sp-del" data-id="' + escHtml(sp.sample_id) + '">삭제</button></div>'
       : '';
+    const dlBtn = '<button class="btn btn-secondary btn-sm sp-dl-one-btn" data-act="sp-dl-one" data-id="' +
+      escHtml(sp.sample_id) + '">⬇️ 다운로드</button>';
     return '<div class="item-card" data-id="' + escHtml(sp.sample_id) + '">' +
       '<div class="item-card-head"><div class="sp-badges">' +
         '<span class="num">' + (idx + 1) + '</span>' +
         '<span class="type-badge type-' + sp.item_type + '">' + typeLabel + '</span>' +
         '<span class="grade-badge">' + escHtml(sp.qual_grade || '-') + '</span>' +
         '<span class="qual-badge">' + escHtml(sp.qual_name || '') + '</span>' + tag + cat +
-      '</div>' + actions + '</div>' +
+      '</div><div class="sp-head-actions">' + dlBtn + actions + '</div></div>' +
       '<div class="item-q">' + escHtml(sp.question) + '</div>' + body + exp +
       '<div class="sp-images-list" data-id="' + escHtml(sp.sample_id) + '"></div>' +
       '</div>';
@@ -186,6 +188,30 @@
     const b = e.target.closest('[data-act]'); if (!b) return;
     const act = b.dataset.act;
     if (act === 'sback') { window.location.href = (s.role === 'admin' ? 'admin.html' : (s.role === 'coach' ? 'review.html' : 'team.html')); }
+    if (act === 'sp-dl-one') {
+      const sp = samples.find(x => x.sample_id === b.dataset.id);
+      if (!sp) return;
+      const tail = String(sp.sample_id).slice(-4);
+      const label = (sp.qual_name || sp.category || CONST.TYPES[sp.item_type] || '샘플').replace(/[\\/:*?"<>|]/g, '');
+      XlsxTool.downloadSampleRows([sp], 'xlsx', '샘플_' + label + '_' + tail);
+      return;
+    }
+    if (act === 'sp-dl-all') {
+      const list = filtered();
+      if (!list.length) { UI.toast('다운로드할 샘플이 없습니다.', 'warning'); return; }
+      document.getElementById('sp-dlall-count').textContent = list.length;
+      UI.modal('sp-dlall-modal', true);
+      return;
+    }
+    if (act === 'sp-dlall-close') { UI.modal('sp-dlall-modal', false); return; }
+    if (act === 'sp-dlall-xlsx' || act === 'sp-dlall-csv') {
+      const list = filtered();
+      if (!list.length) { UI.toast('다운로드할 샘플이 없습니다.', 'warning'); UI.modal('sp-dlall-modal', false); return; }
+      const fmt = act === 'sp-dlall-csv' ? 'csv' : 'xlsx';
+      XlsxTool.downloadSampleRows(list, fmt, '샘플문항_전체_' + list.length + '건');
+      UI.modal('sp-dlall-modal', false);
+      return;
+    }
     if (!canEdit && ['sp-add','sp-edit','sp-del','sp-save','sp-open-upload','sp-upload-save','sp-img-upload','sp-img-del'].includes(act)) {
       UI.toast('샘플 편집 권한이 없습니다.', 'warning'); return;
     }

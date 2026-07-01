@@ -55,16 +55,25 @@
     box.style.display = 'block';
     box.innerHTML = '<div class="notice-head">📢 공지사항</div>' +
       '<div class="notice-list">' + list.map(n =>
-        '<div class="notice-card">' +
+        '<div class="notice-card' + (n.is_pinned ? '' : ' collapsed') + '">' +
           '<div class="notice-top">' +
             (n.is_pinned ? '<span class="notice-pin">📌</span>' : '') +
             '<span class="notice-badge ' + (n.is_common ? 'common' : 'team') + '">' +
               (n.is_common ? '공통' : '우리 조') + '</span>' +
             '<span class="notice-title">' + escHtml(n.title) + '</span>' +
+            '<span class="notice-toggle">▾</span>' +
           '</div>' +
           '<div class="notice-content">' + escHtml(n.content) + '</div>' +
         '</div>').join('') + '</div>';
   }
+  // 공지 카드 펼침/접힘(아코디언): 고정은 펼침, 나머지는 제목 클릭 시 토글
+  (function () {
+    const box = document.getElementById('notice-box');
+    if (box) box.addEventListener('click', (e) => {
+      const top = e.target.closest('.notice-top'); if (!top) return;
+      top.parentElement.classList.toggle('collapsed');
+    });
+  })();
 
   document.querySelector('.page-wrapper').addEventListener('click', (e) => {
     const card = e.target.closest('.comp-card'); if (!card) return;

@@ -16,6 +16,9 @@ const CONST = {
   BUCKET: 'item-images',
   CLASSES   : [1, 2, 3],
   CLASS_LABEL: { 1: '1분반', 2: '2분반', 3: '3분반' },
-  DEFAULT_TARGET: 50
+  DEFAULT_TARGET: 50,
+  GRADES    : ['기능사', '산업기사', '기사'],
+  GRADE_TO_DIFFICULTY: { '기능사': 1, '산업기사': 2, '기사': 3 },
+  DEFAULT_QUAL_NAME: '현대엔지비 직접개발'
 };
 window.CONST = CONST;

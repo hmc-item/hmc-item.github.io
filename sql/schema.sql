@@ -86,3 +86,7 @@ create policy item_images_public_delete on storage.objects for delete using (buc
 -- insert into teams(id,team_id,team_name) values('t_seed','t_seed','기계보전');
 -- insert into competencies(id,comp_id,comp_name,team_id,target_count,order_index)
 --   values('c_seed','c_seed','설비 진단','t_seed',50,1);
+
+-- ===== 해설 필수화(이론서 개발 근거) — 2026-07-01 =====
+update items set explanation = '(해설 미입력)' where explanation is null or explanation = '';
+alter table items alter column explanation set not null;

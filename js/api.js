@@ -58,9 +58,63 @@ const API = (() => {
     return true;
   }
 
+  // ===== Items =====
+  async function getItems(p) {
+    p = p || {};
+    let q = DB.from('items').select('*');
+    if (p.comp_id) q = q.eq('comp_id', p.comp_id);
+    if (p.team_id) q = q.eq('team_id', p.team_id);
+    const { data, error } = await q;
+    if (error) { console.error('[getItems]', error); return []; }
+    return (data || []).sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
+  }
+  async function getItemCounts() {
+    const { data, error } = await DB.from('items').select('comp_id');
+    if (error) { console.error('[getItemCounts]', error); return {}; }
+    const m = {};
+    (data || []).forEach(r => { m[r.comp_id] = (m[r.comp_id] || 0) + 1; });
+    return m;
+  }
+  function normItem(b, idOverride) {
+    const isMcq = b.item_type === 'mcq';
+    return {
+      item_id: idOverride, comp_id: b.comp_id, team_id: b.team_id,
+      item_type: b.item_type, difficulty: Number(b.difficulty),
+      question: b.question || '',
+      option1: isMcq ? (b.option1 || '') : null,
+      option2: isMcq ? (b.option2 || '') : null,
+      option3: isMcq ? (b.option3 || '') : null,
+      option4: isMcq ? (b.option4 || '') : null,
+      answer : isMcq ? (b.answer != null ? Number(b.answer) : null) : null,
+      model_answer: isMcq ? null : (b.model_answer || ''),
+      explanation : b.explanation || '',
+      updated_at  : new Date().toISOString()
+    };
+  }
+  async function saveItem(b) {
+    if (!b.comp_id || !b.team_id || !b.item_type || !b.question) return null;
+    if (b.item_id) {
+      const { data } = await DB.from('items').select('created_at').eq('item_id', b.item_id);
+      const created = (data && data[0]) ? data[0].created_at : new Date().toISOString();
+      const row = normItem(b, b.item_id); row.created_at = created;
+      const ok = await saveRow('items', 'item_id', b.item_id, row);
+      return ok ? true : null;
+    }
+    const id = generateId('it');
+    const row = normItem(b, id); row.created_at = new Date().toISOString();
+    const ok = await saveRow('items', null, null, row);
+    return ok ? { item_id: id } : null;
+  }
+  async function deleteItem(itemId) {
+    const { error } = await DB.from('items').delete().eq('item_id', itemId);
+    if (error) { console.error('[deleteItem]', error); return false; }
+    return true;
+  }
+
   return {
     getTeams, addTeam, updateTeam, deleteTeam,
-    getCompetencies, addCompetency, updateCompetency, deleteCompetency
+    getCompetencies, addCompetency, updateCompetency, deleteCompetency,
+    getItems, getItemCounts, saveItem, deleteItem
   };
 })();
 window.API = API;

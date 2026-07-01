@@ -151,6 +151,37 @@
     UI.modal('item-modal', true);
   }
 
+  // ===== 엑셀 일괄 업로드 =====
+  let validatedRows = [];
+  function renderUploadPreview(results) {
+    const okN = results.filter(r => r.ok).length, ngN = results.length - okN;
+    const rowsHtml = results.map((r, i) =>
+      '<tr class="' + (r.ok ? '' : 'row-err') + '">' +
+      '<td>' + (i + 1) + '</td>' +
+      '<td>' + escHtml(r.raw.문항유형) + '</td>' +
+      '<td>' + escHtml(r.raw.난이도) + '</td>' +
+      '<td class="cell-q">' + escHtml(r.raw.문항) + '</td>' +
+      '<td>' + (r.ok ? '✅' : '❌ ' + escHtml(r.error)) + '</td></tr>').join('');
+    document.getElementById('upload-preview').innerHTML =
+      '<div class="upload-summary">검증: <b>' + okN + '</b>건 저장 가능 / <b class="ng">' + ngN + '</b>건 제외</div>' +
+      '<div class="upload-table-wrap"><table class="admin-table"><thead><tr>' +
+      '<th>#</th><th>유형</th><th>난이도</th><th>문항</th><th>검증</th></tr></thead><tbody>' +
+      rowsHtml + '</tbody></table></div>';
+    document.getElementById('upload-save-btn').disabled = okN === 0;
+  }
+
+  document.getElementById('upload-file') &&
+  document.getElementById('upload-file').addEventListener('change', async (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    UI.showLoading('파일 분석 중...');
+    try {
+      const raw = await XlsxTool.parseFile(f);
+      validatedRows = XlsxTool.validateRows(raw);
+      renderUploadPreview(validatedRows);
+    } catch (err) { console.error(err); UI.toast('파일을 읽을 수 없습니다.', 'error'); }
+    finally { UI.hideLoading(); }
+  });
+
   document.body.addEventListener('click', async (e) => {
     const b = e.target.closest('[data-act]'); if (!b) return;
     const act = b.dataset.act;
@@ -202,6 +233,28 @@
       UI.showLoading('삭제 중...'); const ok = await API.deleteImage(im); UI.hideLoading();
       if (ok) { UI.toast('삭제되었습니다.', 'success'); window.renderModalImages(modalImgItemId); reload(); }
       else UI.toast('삭제 실패', 'error');
+    }
+    if (act === 'dl-template') UI.modal('tpl-modal', true);
+    if (act === 'tpl-close') UI.modal('tpl-modal', false);
+    if (act === 'tpl-xlsx') { XlsxTool.downloadTemplate('xlsx'); UI.modal('tpl-modal', false); }
+    if (act === 'tpl-csv')  { XlsxTool.downloadTemplate('csv');  UI.modal('tpl-modal', false); }
+    if (act === 'open-upload') { if (!ctx.canEdit) return;
+      validatedRows = []; document.getElementById('upload-preview').innerHTML = '';
+      document.getElementById('upload-file').value = ''; document.getElementById('upload-save-btn').disabled = true;
+      UI.modal('upload-modal', true); }
+    if (act === 'upload-close') UI.modal('upload-modal', false);
+    if (act === 'upload-save') {
+      const ok = validatedRows.filter(r => r.ok);
+      if (!ok.length) { UI.toast('저장할 유효 행이 없습니다.', 'warning'); return; }
+      let done = 0, fail = 0;
+      for (let i = 0; i < ok.length; i++) {
+        UI.showLoading('저장 중... (' + (i + 1) + '/' + ok.length + ')');
+        const body = Object.assign({ comp_id: ctx.compId, team_id: (comp ? comp.team_id : s.team_id) }, ok[i].data);
+        const r = await API.saveItem(body); r ? done++ : fail++;
+      }
+      UI.hideLoading();
+      UI.toast(done + '건 저장 완료' + (fail ? (' / ' + fail + '건 실패') : ''), fail ? 'warning' : 'success');
+      UI.modal('upload-modal', false); reload();
     }
   });
 

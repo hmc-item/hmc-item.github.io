@@ -248,6 +248,47 @@ const API = (() => {
     } catch (e) { console.error('[copySampleImageToItem]', e); return false; }
   }
 
+  // ===== Notices =====
+  function sortNotices(arr) {
+    return (arr || []).slice().sort((a, b) => {
+      const pa = a.is_pinned ? 1 : 0, pb = b.is_pinned ? 1 : 0;
+      if (pa !== pb) return pb - pa;                       // 고정 먼저
+      return String(b.created_at).localeCompare(String(a.created_at)); // 최신순
+    });
+  }
+  async function getNotices() {
+    const { data, error } = await DB.from('notices').select('*');
+    if (error) { console.error('[getNotices]', error); return []; }
+    return sortNotices(data);
+  }
+  async function getNoticesForTeam(teamId) {
+    const all = await getNotices();
+    return all.filter(n => n.is_common ||
+      (Array.isArray(n.team_ids) && n.team_ids.includes(teamId)));
+  }
+  async function saveNotice(b) {
+    const id = b.notice_id || generateId('n');
+    let created_at;
+    if (b.notice_id) {   // 수정: 기존 등록일 보존(정렬 유지)
+      const { data } = await DB.from('notices').select('created_at').eq('notice_id', b.notice_id);
+      created_at = data && data[0] ? data[0].created_at : undefined;
+    }
+    const row = {
+      id, notice_id: id, title: b.title, content: b.content,
+      is_common: !!b.is_common,
+      team_ids: b.is_common ? [] : (b.team_ids || []),
+      is_pinned: !!b.is_pinned
+    };
+    if (created_at) row.created_at = created_at;
+    const ok = await saveRow('notices', b.notice_id ? 'notice_id' : null, b.notice_id || null, row);
+    return ok ? { notice_id: id } : null;
+  }
+  async function deleteNotice(noticeId) {
+    const { error } = await DB.from('notices').delete().eq('notice_id', noticeId);
+    if (error) { console.error('[deleteNotice]', error); return false; }
+    return true;
+  }
+
   // ===== Comments =====
   async function getComments(p) {
     p = p || {}; let q = DB.from('comments').select('*');
@@ -310,6 +351,7 @@ const API = (() => {
     getSampleItems, getSampleCount, saveSampleItem, deleteSampleItem,
     getSampleImages, getSampleImagesByIds, uploadSampleImage, deleteSampleImage,
     copySampleImageToItem,
+    getNotices, getNoticesForTeam, saveNotice, deleteNotice,
     uploadErrorMessage: () => lastUploadError
   };
 })();

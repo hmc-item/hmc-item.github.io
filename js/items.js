@@ -195,6 +195,7 @@
 
   // ===== 샘플 차용 =====
   let borrowSamples = [];
+  let borrowFiltered = [];
   window._borrowImages = null;
 
   function borrowCard(sp) {
@@ -210,6 +211,7 @@
         '<span class="grade-badge">' + escHtml(sp.qual_grade || '-') + '</span>' +
         '<span class="qual-badge">' + escHtml(sp.qual_name || '') + '</span>' + tag +
       '</div><div class="item-actions">' +
+        '<button class="btn btn-secondary btn-sm" data-act="bw-dl-one" data-id="' + escHtml(sp.sample_id) + '">⬇️ 다운로드</button>' +
         '<button class="btn btn-primary btn-sm" data-act="borrow-pick" data-id="' + escHtml(sp.sample_id) + '">가져오기</button>' +
       '</div></div>' +
       '<div class="item-q">' + escHtml(sp.question) + '</div>' + body +
@@ -225,6 +227,7 @@
       (!kw || (String(sp.question || '') + ' ' + String(sp.qual_name || '')).toLowerCase().includes(kw)));
     // 이 역량 태그 우선 정렬
     list = list.slice().sort((a, b) => (b.comp_id === compId ? 1 : 0) - (a.comp_id === compId ? 1 : 0));
+    borrowFiltered = list;
     document.getElementById('bw-list').innerHTML = list.length
       ? list.map(borrowCard).join('')
       : '<div class="empty-state">표시할 샘플이 없습니다.</div>';
@@ -331,6 +334,17 @@
     if (act === 'open-borrow') openBorrowModal();
     if (act === 'borrow-close') UI.modal('borrow-modal', false);
     if (act === 'borrow-pick') pickBorrow(b.dataset.id);
+    if (act === 'bw-dl-one') {
+      const sp = borrowSamples.find(x => x.sample_id === b.dataset.id);
+      if (!sp) return;
+      const tail = String(sp.sample_id).slice(-4);
+      const label = (sp.qual_name || sp.category || CONST.TYPES[sp.item_type] || '샘플').replace(/[\\/:*?"<>|]/g, '');
+      XlsxTool.downloadSampleRows([sp], 'xlsx', '샘플_' + label + '_' + tail);
+    }
+    if (act === 'bw-dl-all') {
+      if (!borrowFiltered.length) { UI.toast('다운로드할 샘플이 없습니다.', 'warning'); return; }
+      XlsxTool.downloadSampleRows(borrowFiltered, 'xlsx', '샘플문항_' + borrowFiltered.length + '건');
+    }
     if (act === 'item-close') UI.modal('item-modal', false);
     if (act === 'edit-item') openItemModal(items.find(i => i.item_id === b.dataset.id));
     if (act === 'del-item') {

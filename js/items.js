@@ -52,6 +52,34 @@
       '</div>';
   }
 
+  function renderNav() {
+    const el = document.getElementById('items-nav'); if (!el) return;
+    const target = comp && comp.target_count != null ? comp.target_count : 50;
+    const count = items.length;
+    const total = Math.max(count, target);
+    const cmMap = window._cmMap || {};
+    let reviewN = 0, todoN = 0, rows = '';
+    for (let i = 1; i <= total; i++) {
+      if (i <= count) {
+        const it = items[i - 1];
+        const unres = (cmMap[it.item_id] || []).some(c => !c.is_resolved);
+        if (unres) reviewN++;
+        rows += '<button class="nav-slot ' + (unres ? 'nav-review' : 'nav-done') +
+          '" data-nav-item="' + escHtml(it.item_id) + '">' +
+          '<span class="nav-slot-no">' + i + '</span>' +
+          '<span class="nav-slot-st">' + (unres ? '재검토 필요' : '개발완료') + '</span></button>';
+      } else {
+        todoN++;
+        rows += '<button class="nav-slot nav-todo" data-nav-slot="' + i + '">' +
+          '<span class="nav-slot-no">' + i + '</span>' +
+          '<span class="nav-slot-st">미개발</span></button>';
+      }
+    }
+    el.innerHTML = '<div class="nav-summary">개발 ' + count + '/' + target +
+      ' · <span class="nav-sum-review">재검토 ' + reviewN + '</span> · 미개발 ' + todoN + '</div>' +
+      '<div class="nav-slots">' + rows + '</div>';
+  }
+
   function render() {
     document.getElementById('comp-title').textContent = comp ? comp.comp_name : '역량';
     document.getElementById('comp-cat').textContent = comp && comp.category ? comp.category : '';
@@ -67,6 +95,7 @@
       : '<div class="empty-state">작성된 문항이 없습니다.' + (ctx.canEdit ? ' 위 버튼으로 추가하세요.' : '') + '</div>';
     if (window.renderItemImages) window.renderItemImages();   // Task 10
     if (window.renderItemComments) window.renderItemComments(); // Task 13
+    renderNav();
   }
 
   async function reload() {
@@ -292,6 +321,24 @@
 
   ['filter-type','filter-diff'].forEach(id =>
     document.getElementById(id).addEventListener('change', render));
+
+  function jumpToItem(itemId) {
+    const ft = document.getElementById('filter-type');
+    const fd = document.getElementById('filter-diff');
+    if (ft.value || fd.value) { ft.value = ''; fd.value = ''; render(); } // 숨겨졌으면 필터 해제
+    const card = document.querySelector('.item-card[data-id="' + CSS.escape(itemId) + '"]');
+    if (!card) return;
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    card.classList.add('item-flash');
+    setTimeout(() => card.classList.remove('item-flash'), 1200);
+  }
+
+  document.getElementById('items-nav').addEventListener('click', (e) => {
+    const jump = e.target.closest('[data-nav-item]');
+    if (jump) { jumpToItem(jump.dataset.navItem); return; }
+    const slot = e.target.closest('[data-nav-slot]');
+    if (slot && ctx.canEdit) openItemModal(null);
+  });
 
   reload();
 })();

@@ -13,19 +13,23 @@
     <div class="items-rate"><span>달성률</span><strong id="items-rate">0%</strong></div>
   </div>
 
-  <div class="items-actionbar" id="actionbar">
-    <button class="btn btn-primary btn-sm" data-act="add-item">+ 문항 추가</button>
-    <button class="btn btn-secondary btn-sm" data-act="open-upload">📥 엑셀 일괄 업로드</button>
-    <button class="btn btn-secondary btn-sm" data-act="dl-template">📄 템플릿 다운로드</button>
-    <span class="ab-spacer"></span>
-    <select id="filter-type" class="form-control form-select ab-filter">
-      <option value="">유형 전체</option><option value="mcq">객관식</option><option value="essay">서술형</option></select>
-    <select id="filter-diff" class="form-control form-select ab-filter">
-      <option value="">난이도 전체</option><option value="1">난이도 1</option>
-      <option value="2">난이도 2</option><option value="3">난이도 3</option></select>
+  <div class="items-layout">
+    <aside class="items-nav" id="items-nav"></aside>
+    <div class="items-main">
+      <div class="items-actionbar" id="actionbar">
+        <button class="btn btn-primary btn-sm" data-act="add-item">+ 문항 추가</button>
+        <button class="btn btn-secondary btn-sm" data-act="open-upload">📥 엑셀 일괄 업로드</button>
+        <button class="btn btn-secondary btn-sm" data-act="dl-template">📄 템플릿 다운로드</button>
+        <span class="ab-spacer"></span>
+        <select id="filter-type" class="form-control form-select ab-filter">
+          <option value="">유형 전체</option><option value="mcq">객관식</option><option value="essay">서술형</option></select>
+        <select id="filter-diff" class="form-control form-select ab-filter">
+          <option value="">난이도 전체</option><option value="1">난이도 1</option>
+          <option value="2">난이도 2</option><option value="3">난이도 3</option></select>
+      </div>
+      <div class="item-list" id="item-list"><div class="empty-state">불러오는 중...</div></div>
+    </div>
   </div>
-
-  <div class="item-list" id="item-list"><div class="empty-state">불러오는 중...</div></div>
 </div>
 
 <!-- 문항 모달 -->

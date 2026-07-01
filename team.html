@@ -1,0 +1,18 @@
+<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>우리 조 | 문항개발 워크샵</title>
+<link rel="stylesheet" href="css/common.css"><link rel="stylesheet" href="css/team.css"></head>
+<body><nav id="navbar"></nav><div class="page-wrapper">
+  <div class="team-header"><div><h1 class="page-title" id="team-title">우리 조</h1>
+    <p class="page-desc">할당된 역량의 문항을 개발하세요</p></div>
+    <div class="team-stat"><span class="team-stat-label">전체 달성률</span>
+      <span class="team-stat-value" id="team-rate">-</span></div></div>
+  <div class="section-title">📌 우리 조 할당 역량</div>
+  <div class="comp-grid" id="comp-grid"><div class="empty-state">불러오는 중...</div></div>
+  <div class="section-title" style="margin-top:32px;">👁 다른 조 문항 둘러보기 (읽기 전용)</div>
+  <div class="comp-grid" id="other-grid"></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script><script src="js/core.js"></script>
+<script src="js/session.js"></script><script src="js/api.js"></script><script src="js/team.js"></script>
+</body></html>

@@ -1,0 +1,75 @@
+<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>문항 작성 | 문항개발 워크샵</title>
+<link rel="stylesheet" href="css/common.css"><link rel="stylesheet" href="css/items.css"></head>
+<body><nav id="navbar"></nav><div class="page-wrapper">
+  <div class="items-header">
+    <div class="items-header-left">
+      <button class="btn-back" data-act="back">← 뒤로</button>
+      <div><h1 class="items-title" id="comp-title">역량</h1>
+        <div class="items-meta"><span id="comp-cat" class="items-cat"></span>
+          <span id="readonly-badge" class="ro-badge" style="display:none;">👁 읽기 전용</span></div></div>
+    </div>
+    <div class="items-rate"><span>달성률</span><strong id="items-rate">0%</strong></div>
+  </div>
+
+  <div class="items-actionbar" id="actionbar">
+    <button class="btn btn-primary btn-sm" data-act="add-item">+ 문항 추가</button>
+    <button class="btn btn-secondary btn-sm" data-act="open-upload">📥 엑셀 일괄 업로드</button>
+    <button class="btn btn-secondary btn-sm" data-act="dl-template">📄 템플릿 다운로드</button>
+    <span class="ab-spacer"></span>
+    <select id="filter-type" class="form-control form-select ab-filter">
+      <option value="">유형 전체</option><option value="mcq">객관식</option><option value="essay">서술형</option></select>
+    <select id="filter-diff" class="form-control form-select ab-filter">
+      <option value="">난이도 전체</option><option value="1">난이도 1</option>
+      <option value="2">난이도 2</option><option value="3">난이도 3</option></select>
+  </div>
+
+  <div class="item-list" id="item-list"><div class="empty-state">불러오는 중...</div></div>
+</div>
+
+<!-- 문항 모달 -->
+<div id="item-modal" class="modal-backdrop" style="display:none;"><div class="modal modal-lg">
+  <div class="modal-header"><h2 class="modal-title" id="item-modal-title">문항 추가</h2>
+    <button class="modal-close" data-act="item-close">✕</button></div>
+  <div class="modal-body"><input type="hidden" id="item-modal-id">
+    <div class="modal-field-row-2col">
+      <div class="form-group"><label class="form-label">문항유형 <span class="required">*</span></label>
+        <select id="im-type" class="form-control form-select">
+          <option value="mcq">객관식</option><option value="essay">서술형</option></select></div>
+      <div class="form-group"><label class="form-label">난이도 <span class="required">*</span></label>
+        <select id="im-diff" class="form-control form-select">
+          <option value="1">1</option><option value="2">2</option><option value="3">3</option></select></div>
+    </div>
+    <div class="form-group"><label class="form-label">문항(질문) <span class="required">*</span></label>
+      <textarea id="im-question" class="form-control" rows="3"></textarea></div>
+    <div id="im-mcq">
+      <div class="modal-field-row-2col">
+        <div class="form-group"><label class="form-label">보기1</label><input id="im-o1" class="form-control"></div>
+        <div class="form-group"><label class="form-label">보기2</label><input id="im-o2" class="form-control"></div>
+        <div class="form-group"><label class="form-label">보기3</label><input id="im-o3" class="form-control"></div>
+        <div class="form-group"><label class="form-label">보기4</label><input id="im-o4" class="form-control"></div>
+      </div>
+      <div class="form-group"><label class="form-label">정답</label>
+        <select id="im-answer" class="form-control form-select">
+          <option value="1">보기1</option><option value="2">보기2</option>
+          <option value="3">보기3</option><option value="4">보기4</option></select></div>
+    </div>
+    <div id="im-essay" style="display:none;">
+      <div class="form-group"><label class="form-label">모범답안</label>
+        <textarea id="im-model" class="form-control" rows="3"></textarea></div>
+    </div>
+    <div class="form-group"><label class="form-label">해설</label>
+      <textarea id="im-exp" class="form-control" rows="2"></textarea></div>
+    <div id="im-images-slot"></div><!-- Task 10에서 이미지 첨부 UI 삽입 -->
+  </div>
+  <div class="modal-footer"><button class="btn btn-secondary" data-act="item-close">취소</button>
+    <button class="btn btn-primary" data-act="item-save">저장</button></div>
+</div></div>
+
+<div id="upload-slot"></div><!-- Task 11에서 엑셀 업로드 모달 삽입 -->
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script><script src="js/core.js"></script>
+<script src="js/session.js"></script><script src="js/api.js"></script>
+<script src="js/items.js"></script></body></html>

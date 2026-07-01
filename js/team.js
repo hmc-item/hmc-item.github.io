@@ -53,5 +53,7 @@
     window.location.href = 'items.html?comp_id=' + encodeURIComponent(card.dataset.comp) + (mine ? '&mine=1' : '');
   });
 
-  load();
+  // 페이지가 표시될 때마다(최초 로드 + 뒤로가기 bfcache 복원) 진도율 최신화
+  // → 문항 작성 후 돌아오면 카운트가 항상 반영됨
+  window.addEventListener('pageshow', () => load());
 })();

@@ -8,33 +8,43 @@ const Session = (() => {
     if (!s || s.role !== role) { window.location.href = 'entry.html'; return false; }
     return true;
   }
-  const helpContent = {
-    sme: '<h3>SME 사용법 — 워크샵 진행 순서</h3>' +
-      '<ol class="help-steps">' +
-      '<li><b>진입</b> — 역할에서 <b>SME</b>를 선택하고, 담당 <b>조(직무명)</b>와 <b>분반</b>을 고릅니다. 비밀번호는 없습니다.</li>' +
-      '<li><b>공지 확인</b> — 화면 상단의 공지사항(전체 공통 + 우리 조)을 확인합니다. 📌 고정 공지를 먼저 봅니다.</li>' +
-      '<li><b>역량 선택</b> — 우리 조에 할당된 <b>역량 카드</b>를 클릭해 문항 개발 화면으로 들어갑니다.</li>' +
-      '<li><b>문항 개발 (생성형 AI 활용)</b> — 아래 두 방식을 상황에 맞게 병행합니다.' +
-        '<ul class="help-sub">' +
-          '<li><b>A. 샘플 기반 커스터마이징</b> — <b>샘플 문항 뱅크</b>에서 관련 샘플을 <b>다운로드</b>(카드별 개별 ⬇️ 또는 필터 목록 전체 📥)한 뒤 생성형 AI에 전달하여, 우리 직무에 맞게 변형·확장합니다.</li>' +
-          '<li><b>B. 지식·내부자료 기반 개발</b> — 본인 전문지식과 준비해온 내부 자료(직무 표준·교재 등)를 생성형 AI에 전달하여 신규 문항을 생성합니다.</li>' +
-        '</ul>' +
-        '<div class="help-note">※ 사용할 AI 프롬프트 문구는 워크샵에서 별도 안내됩니다.</div>' +
-      '</li>' +
-      '<li><b>문항 등록</b> — AI가 만든 문항을 검토·수정한 뒤 <b>폼 입력</b> 또는 <b>엑셀 일괄 업로드</b>로 등록합니다. 난이도(1·2·3)와 해설은 모든 문항 필수, 객관식은 보기 4개·정답이 필수입니다.</li>' +
-      '<li><b>이미지 첨부</b> — 필요하면 문항 작성 창에서 <b>영역(문항/보기/해설/모범답안)</b>을 골라 이미지를 첨부·다운로드합니다.</li>' +
-      '<li><b>코칭 반영</b> — 교수·관리자 <b>코멘트</b>를 확인하고 수정한 뒤 <b>[반영 완료]</b>를 체크합니다.</li>' +
-      '</ol>',
-    coach: '<h3>교수(코치) 사용법</h3><ol>' +
-      '<li>상단 <b>역량 필터</b>로 담당 역량의 문항만 모아 봅니다.</li>' +
-      '<li>문항을 검토하고 <b>코멘트</b>를 작성합니다(작성자는 "교수"로 기록).</li>' +
-      '<li>본인이 단 코멘트는 수정·삭제할 수 있습니다.</li></ol>',
-    admin: '<h3>관리자 사용법</h3><ol>' +
-      '<li><b>조 관리</b>·<b>역량 관리</b>에서 조/역량을 등록하고 담당조·목표수량을 지정합니다.</li>' +
-      '<li><b>진척 대시보드</b>에서 역량별/조별 달성률을 확인합니다.</li>' +
-      '<li><b>코멘트</b> 화면은 교수와 동일하게 사용할 수 있습니다.</li></ol>'
+  const HELP_TITLE = { sme: 'SME 사용법 — 워크샵 진행 순서', coach: '교수(코치) 사용법', admin: '관리자 사용법' };
+  const DEFAULT_HELP = {
+    sme: [
+      '진입 — 역할에서 SME를 선택하고 담당 조(직무명)·분반을 고릅니다. 비밀번호는 없습니다.',
+      '공지 확인 — 화면 상단 공지사항(공통 + 우리 조)을 확인합니다. 고정 공지를 먼저 봅니다.',
+      '역량 선택 — 우리 조에 할당된 역량 카드를 클릭해 문항 개발 화면으로 들어갑니다.',
+      '문항 개발(생성형 AI) — A) 샘플 문항 뱅크에서 관련 샘플을 다운로드해 AI로 우리 직무에 맞게 변형·확장  B) 본인 지식·내부 자료를 AI에 전달해 신규 문항 생성. (AI 프롬프트 문구는 워크샵에서 안내)',
+      '문항 등록 — AI 결과를 검토·수정한 뒤 폼 입력 또는 엑셀 일괄 업로드. 난이도(1·2·3)·해설은 모든 문항 필수, 객관식은 보기 4개·정답 필수.',
+      '이미지 첨부 — 필요 시 영역(문항/보기/해설/모범답안)별로 이미지를 첨부·다운로드합니다.',
+      '코칭 반영 — 교수·관리자 코멘트를 확인·수정한 뒤 [반영 완료]를 체크합니다.'
+    ].join('\n'),
+    coach: [
+      '역량 필터 — 상단 역량 필터로 담당 역량의 문항만 모아 봅니다.',
+      '코멘트 작성 — 문항을 검토하고 코멘트를 작성합니다(작성자는 "교수"로 기록).',
+      '수정·삭제 — 본인이 단 코멘트는 수정·삭제할 수 있습니다.'
+    ].join('\n'),
+    admin: [
+      '조·역량 관리 — 조/역량을 등록하고 담당조·목표수량을 지정합니다.',
+      '진척 대시보드 — 역량별/조별 달성률을 확인합니다.',
+      '코멘트 — 교수와 동일하게 코멘트를 작성할 수 있습니다.',
+      '공지·사용법 관리 — 공지 관리 탭에서 공지를, 사용법 관리 탭에서 역할별 사용법을 편집합니다.'
+    ].join('\n')
   };
-  function openHelp() {
+  function renderHelpBody(role, body) {
+    const title = HELP_TITLE[role] || '사용법';
+    const items = String(body == null ? '' : body).split('\n')
+      .map(l => l.trim()).filter(l => l)
+      .map(l => {
+        const e = escHtml(l);
+        const i = e.indexOf('—');   // em dash
+        return i > 0
+          ? '<li><b>' + e.slice(0, i).trim() + '</b> — ' + e.slice(i + 1).trim() + '</li>'
+          : '<li>' + e + '</li>';
+      }).join('');
+    return '<h3>' + escHtml(title) + '</h3><ol class="help-steps">' + items + '</ol>';
+  }
+  async function openHelp() {
     const s = get(); const role = s ? s.role : 'sme';
     let el = document.getElementById('help-modal');
     if (!el) {
@@ -47,8 +57,13 @@ const Session = (() => {
         if (e.target.closest('[data-h="close"]') || e.target === el) el.style.display = 'none';
       });
     }
-    document.getElementById('help-body').innerHTML = helpContent[role] || helpContent.sme;
+    const bodyEl = document.getElementById('help-body');
+    bodyEl.innerHTML = '<p style="color:#888;">불러오는 중…</p>';
     el.style.display = 'flex';
+    let body = null;
+    try { if (window.API && API.getHelpText) body = await API.getHelpText(role); } catch (e) { console.error(e); }
+    if (!body) body = DEFAULT_HELP[role] || DEFAULT_HELP.sme;
+    bodyEl.innerHTML = renderHelpBody(role, body);
   }
   function renderNav() {
     const nav = document.getElementById('navbar'); if (!nav) return;
@@ -74,6 +89,8 @@ const Session = (() => {
     if (!s) return 'entry.html';
     return s.role === 'sme' ? 'team.html' : (s.role === 'coach' ? 'review.html' : 'admin.html');
   }
-  return { set, get, clear, requireRole, renderNav, openHelp, helpContent };
+  return { set, get, clear, requireRole, renderNav, openHelp, renderHelpBody, DEFAULT_HELP };
 })();
 window.Session = Session;
+window.renderHelpBody = Session.renderHelpBody;
+window.DEFAULT_HELP = Session.DEFAULT_HELP;

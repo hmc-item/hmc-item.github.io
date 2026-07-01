@@ -83,9 +83,9 @@
 
   async function renderDashTab() {
     UI.showLoading('현황 집계 중...');
-    const [cs, ts, counts, unres, allItems] =
+    const [cs, ts, counts, unres, allItems, sampleCnt] =
       await Promise.all([API.getCompetencies(), API.getTeams(), API.getItemCounts(),
-                         API.getUnresolvedCounts(), API.getItems({})]);
+                         API.getUnresolvedCounts(), API.getItems({}), API.getSampleCount()]);
     window._dashItems = allItems;
     window._dashComps = cs;
     window._dashTeams = ts;
@@ -138,7 +138,10 @@
         '<div class="dash-stat-row"><span>난이도1 <b>' + dCount(1) + '</b> (' + pct(dCount(1)) + '%)</span>' +
         '<span>난이도2 <b>' + dCount(2) + '</b> (' + pct(dCount(2)) + '%)</span>' +
         '<span>난이도3 <b>' + dCount(3) + '</b> (' + pct(dCount(3)) + '%)</span></div>' +
-        '<div class="dash-stat-sub">전체 ' + totalN + '문항</div></div>';
+        '<div class="dash-stat-sub">전체 ' + totalN + '문항</div></div>' +
+      '<div class="dash-stat"><div class="dash-stat-h">샘플 문항 뱅크</div>' +
+        '<div class="dash-stat-row"><span>등록 <b>' + sampleCnt + '</b> 개</span>' +
+        '<span><a href="samples.html">관리 →</a></span></div></div>';
 
     // 분반별
     const groupCard = (name, teamIds) => {

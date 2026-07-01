@@ -123,6 +123,40 @@
       '<div class="dash-bar"><div class="dash-bar-fill" style="width:' + Math.min(t.r,100) + '%"></div></div>' +
       '<div class="dash-foot"><span>' + t.cnt + '/' + t.tgt + '</span></div></div>').join('')
       : '<p class="table-empty">조가 없습니다.</p>';
+
+    // 전체 요약: 객/서 · 난이도
+    const totalN = allItems.length;
+    const mcqTot = allItems.filter(i => i.item_type === 'mcq').length;
+    const essayTot = totalN - mcqTot;
+    const dCount = (d) => allItems.filter(i => Number(i.difficulty) === d).length;
+    const pct = (n) => totalN ? Math.round(n / totalN * 100) : 0;
+    document.getElementById('dash-summary').innerHTML =
+      '<div class="dash-stat"><div class="dash-stat-h">유형 총 현황</div>' +
+        '<div class="dash-stat-row"><span>객관식 <b>' + mcqTot + '</b> (' + pct(mcqTot) + '%)</span>' +
+        '<span>서술형 <b>' + essayTot + '</b> (' + pct(essayTot) + '%)</span></div></div>' +
+      '<div class="dash-stat"><div class="dash-stat-h">난이도 총 현황</div>' +
+        '<div class="dash-stat-row"><span>난이도1 <b>' + dCount(1) + '</b> (' + pct(dCount(1)) + '%)</span>' +
+        '<span>난이도2 <b>' + dCount(2) + '</b> (' + pct(dCount(2)) + '%)</span>' +
+        '<span>난이도3 <b>' + dCount(3) + '</b> (' + pct(dCount(3)) + '%)</span></div>' +
+        '<div class="dash-stat-sub">전체 ' + totalN + '문항</div></div>';
+
+    // 분반별
+    const groupCard = (name, teamIds) => {
+      const gcomps = cs.filter(c => teamIds.includes(c.team_id));
+      const cnt = gcomps.reduce((a, c) => a + (counts[c.comp_id] || 0), 0);
+      const tgt = gcomps.reduce((a, c) => a + (Number(c.target_count) || 0), 0);
+      const r = rateOf(cnt, tgt);
+      return '<div class="dash-card"><div class="dash-card-top"><span class="dash-name">' + escHtml(name) + '</span>' +
+        '<span class="dash-rate ' + (r > 100 ? 'over' : (r < 100 ? 'under' : 'ok')) + '">' + r + '%</span></div>' +
+        '<div class="dash-meta">조 ' + teamIds.length + '개</div>' +
+        '<div class="dash-bar"><div class="dash-bar-fill" style="width:' + Math.min(r,100) + '%"></div></div>' +
+        '<div class="dash-foot"><span>' + cnt + '/' + tgt + '</span></div></div>';
+    };
+    let classHtml = [1,2,3].map(cls =>
+      groupCard(CONST.CLASS_LABEL[cls], ts.filter(t => Number(t.class_no) === cls).map(t => t.team_id))).join('');
+    const unassigned = ts.filter(t => t.class_no == null).map(t => t.team_id);
+    if (unassigned.length) classHtml += groupCard('미지정', unassigned);
+    document.getElementById('dash-class').innerHTML = classHtml;
   }
   window.renderDashTab = renderDashTab;
 

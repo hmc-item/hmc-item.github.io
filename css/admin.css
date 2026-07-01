@@ -1016,3 +1016,10 @@
 .dash-bar-fill { height:100%; background:var(--hmc-blue); border-radius:100px; }
 .dash-foot { display:flex; justify-content:space-between; gap:8px; font-size:12px; color:var(--text-muted); margin-top:8px; flex-wrap:wrap; }
 .dash-unres { color:#b45309; font-weight:700; }
+.dash-summary { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:24px; }
+.dash-stat { border:1.5px solid var(--border); border-radius:12px; padding:16px; background:var(--surface); }
+.dash-stat-h { font-size:13px; font-weight:700; color:var(--hmc-blue); margin-bottom:10px; }
+.dash-stat-row { display:flex; flex-wrap:wrap; gap:16px; font-size:14px; }
+.dash-stat-row b { font-size:16px; }
+.dash-stat-sub { font-size:12px; color:var(--text-muted); margin-top:8px; }
+@media (max-width:768px){ .dash-summary{ grid-template-columns:1fr; } }

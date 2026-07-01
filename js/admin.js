@@ -23,18 +23,20 @@
     const tb = document.getElementById('teams-tbody');
     tb.innerHTML = teams.length ? teams.map(t =>
       '<tr><td><strong>' + escHtml(t.team_name) + '</strong></td>' +
+      '<td class="td-center">' + (t.class_no ? escHtml(CONST.CLASS_LABEL[t.class_no] || t.class_no) : '-') + '</td>' +
       '<td class="td-center">' + escHtml(String(t.created_at || '').slice(0,10)) + '</td>' +
       '<td class="td-actions">' +
         '<button class="btn btn-secondary btn-sm" data-act="edit-team" data-id="' + escHtml(t.team_id) + '">수정</button>' +
         '<button class="btn btn-danger btn-sm" data-act="del-team" data-id="' + escHtml(t.team_id) + '">삭제</button>' +
       '</td></tr>').join('')
-      : '<tr><td colspan="3" class="table-empty">등록된 조가 없습니다.</td></tr>';
+      : '<tr><td colspan="4" class="table-empty">등록된 조가 없습니다.</td></tr>';
   }
   window.adminReloadTeams = loadTeams;
 
   function openTeamModal(team) {
     document.getElementById('team-modal-id').value = team ? team.team_id : '';
     document.getElementById('team-modal-name').value = team ? team.team_name : '';
+    document.getElementById('team-modal-class').value = team && team.class_no != null ? String(team.class_no) : '';
     document.getElementById('team-modal-title').textContent = team ? '조 수정' : '조 추가';
     UI.modal('team-modal', true);
   }
@@ -162,9 +164,11 @@
     if (act === 'team-save') {
       const id = document.getElementById('team-modal-id').value;
       const name = document.getElementById('team-modal-name').value.trim();
+      const classVal = document.getElementById('team-modal-class').value;
+      const classNo = classVal ? Number(classVal) : null;
       if (!name) { UI.toast('직무명을 입력해주세요.', 'warning'); return; }
       UI.showLoading('저장 중...');
-      const ok = id ? await API.updateTeam(id, name) : !!(await API.addTeam(name));
+      const ok = id ? await API.updateTeam(id, name, classNo) : !!(await API.addTeam(name, classNo));
       UI.hideLoading();
       if (ok) { UI.toast('저장되었습니다.', 'success'); UI.modal('team-modal', false); loadTeams(); }
       else UI.toast('저장 실패', 'error');

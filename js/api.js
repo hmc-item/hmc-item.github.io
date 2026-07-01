@@ -6,17 +6,19 @@ const API = (() => {
     if (error) { console.error('[getTeams]', error); return []; }
     return data || [];
   }
-  async function addTeam(name) {
+  async function addTeam(name, classNo) {
     const id = generateId('t');
-    const ok = await saveRow('teams', null, null, { id, team_id: id, team_name: name });
+    const ok = await saveRow('teams', null, null,
+      { id, team_id: id, team_name: name, class_no: classNo != null ? classNo : null });
     return ok ? { team_id: id } : null;
   }
-  async function updateTeam(teamId, name) {
+  async function updateTeam(teamId, name, classNo) {
     const { data } = await DB.from('teams').select('*').eq('team_id', teamId);
     if (!data || !data.length) return false;
     const cur = data[0];
     return saveRow('teams', 'team_id', teamId,
-      { id: cur.id, team_id: teamId, team_name: name, created_at: cur.created_at });
+      { id: cur.id, team_id: teamId, team_name: name,
+        class_no: classNo != null ? classNo : null, created_at: cur.created_at });
   }
   async function deleteTeam(teamId) {
     const { error } = await DB.from('teams').delete().eq('team_id', teamId);

@@ -31,5 +31,10 @@ create table if not exists sample_item_images (
 create index if not exists idx_sample_items_comp on sample_items(comp_id);
 create index if not exists idx_sample_images_sample on sample_item_images(sample_id);
 
+-- ⚠️ 중요: SQL Editor로 만든 테이블은 RLS가 켜진 채 생성될 수 있음.
+-- RLS가 켜져 있으면 정책이 없어 publishable(anon) 키의 INSERT/SELECT가 401로 거부됨.
+-- 아래 disable 실행 후, 반드시 rls 상태를 확인할 것:
+--   select relname, relrowsecurity from pg_class where relname in ('sample_items','sample_item_images');
+-- 두 행 모두 relrowsecurity = false 여야 함(기존 items 등과 동일).
 alter table sample_items disable row level security;
 alter table sample_item_images disable row level security;

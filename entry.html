@@ -1,0 +1,29 @@
+<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>진입 | 문항개발 워크샵</title>
+<link rel="stylesheet" href="css/common.css"><link rel="stylesheet" href="css/entry.css"></head>
+<body><div class="entry-bg"><div class="entry-container">
+  <div class="entry-logo-wrap">
+    <img src="assets/hyundai-logo.png" class="entry-logo-img" alt="Hyundai">
+    <p class="entry-subtitle">핵심기술직무 문항개발 워크샵</p>
+  </div>
+  <div class="entry-card">
+    <h2 class="entry-title">역할을 선택하세요</h2>
+    <div class="role-grid">
+      <button class="role-btn" data-role="sme"><span class="role-emoji">✏️</span>
+        <span class="role-name">SME</span><span class="role-desc">우리 조 역량의 문항을 개발합니다</span></button>
+      <button class="role-btn" data-role="coach"><span class="role-emoji">🎓</span>
+        <span class="role-name">교수</span><span class="role-desc">문항을 검토하고 코멘트합니다</span></button>
+      <button class="role-btn" data-role="admin"><span class="role-emoji">🛠️</span>
+        <span class="role-name">관리자</span><span class="role-desc">조·역량 관리 및 진척을 확인합니다</span></button>
+    </div>
+    <div id="team-pick" class="team-pick" style="display:none;">
+      <label class="form-label">조(직무명) 선택</label>
+      <select id="team-select" class="form-control form-select"><option value="">불러오는 중...</option></select>
+      <button class="btn btn-primary" id="team-enter" style="margin-top:12px;width:100%;justify-content:center;">입장</button>
+    </div>
+  </div>
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script><script src="js/core.js"></script>
+<script src="js/session.js"></script><script src="js/entry.js"></script></body></html>

@@ -61,6 +61,14 @@ create index if not exists idx_items_team on items(team_id);
 create index if not exists idx_comments_item on comments(item_id);
 create index if not exists idx_images_item on item_images(item_id);
 
+-- RLS 비활성화: 비밀번호 없는 사내 공개 도구라 publishable(anon) 키로 읽기/쓰기 허용
+-- (RLS가 켜져 있으면 정책 없이는 공개 키가 데이터를 못 읽어 빈 결과가 반환됨)
+alter table teams        disable row level security;
+alter table competencies disable row level security;
+alter table items        disable row level security;
+alter table item_images  disable row level security;
+alter table comments     disable row level security;
+
 -- 시드 예시(선택): 조 1개 + 역량 1개
 -- insert into teams(id,team_id,team_name) values('t_seed','t_seed','기계보전');
 -- insert into competencies(id,comp_id,comp_name,team_id,target_count,order_index)

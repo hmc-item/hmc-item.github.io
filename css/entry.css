@@ -1,0 +1,16 @@
+.entry-bg { min-height:100vh; background:linear-gradient(135deg,#001d4a,#003478 55%,#1F4E9F);
+  display:flex; align-items:center; justify-content:center; padding:24px; }
+.entry-container { width:100%; max-width:520px; display:flex; flex-direction:column; align-items:center; gap:24px; }
+.entry-logo-wrap { text-align:center; }
+.entry-logo-img { width:200px; filter:brightness(0) invert(1); margin-bottom:12px; }
+.entry-subtitle { color:rgba(255,255,255,.85); font-weight:600; }
+.entry-card { width:100%; background:#fff; border-radius:20px; padding:32px; box-shadow:0 20px 60px rgba(0,0,0,.25); }
+.entry-title { font-size:18px; font-weight:700; color:var(--hmc-blue); margin-bottom:20px; text-align:center; }
+.role-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; }
+.role-btn { display:flex; flex-direction:column; align-items:center; gap:6px; padding:20px 12px;
+  border:1.5px solid var(--border); border-radius:14px; background:#fff; cursor:pointer; transition:var(--transition); }
+.role-btn:hover { border-color:var(--hmc-blue); box-shadow:var(--shadow-md); transform:translateY(-2px); }
+.role-emoji { font-size:28px; } .role-name { font-weight:800; color:var(--hmc-blue); }
+.role-desc { font-size:11px; color:var(--text-muted); text-align:center; line-height:1.4; }
+.team-pick { margin-top:20px; padding-top:20px; border-top:1px solid var(--border); }
+@media (max-width:480px){ .role-grid{ grid-template-columns:1fr; } }

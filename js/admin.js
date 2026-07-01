@@ -76,6 +76,78 @@
     UI.modal('comp-modal', true);
   }
 
+  // ---- 진척 대시보드 ----
+  function rateOf(cnt, target) { const t = Number(target) || 0; return t ? Math.round((cnt||0)/t*100) : 0; }
+
+  async function renderDashTab() {
+    UI.showLoading('현황 집계 중...');
+    const [cs, ts, counts, unres, allItems] =
+      await Promise.all([API.getCompetencies(), API.getTeams(), API.getItemCounts(),
+                         API.getUnresolvedCounts(), API.getItems({})]);
+    window._dashItems = allItems;
+    window._dashComps = cs;
+    window._dashTeams = ts;
+    UI.hideLoading();
+    const tname = (id) => { const t = ts.find(x => x.team_id === id); return t ? t.team_name : '-'; };
+
+    // 역량별
+    document.getElementById('dash-comp').innerHTML = cs.length ? cs.map(c => {
+      const cnt = counts[c.comp_id] || 0, target = c.target_count != null ? c.target_count : 50;
+      const r = rateOf(cnt, target), over = r > 100, under = r < 100;
+      const byType = allItems.filter(i => i.comp_id === c.comp_id);
+      const mcq = byType.filter(i => i.item_type === 'mcq').length;
+      const essay = byType.length - mcq;
+      const u = unres[c.comp_id] || 0;
+      return '<div class="dash-card"><div class="dash-card-top"><span class="dash-name">' + escHtml(c.comp_name) + '</span>' +
+        '<span class="dash-rate ' + (over ? 'over' : (under ? 'under' : 'ok')) + '">' + r + '%</span></div>' +
+        '<div class="dash-meta">' + escHtml(tname(c.team_id)) + '</div>' +
+        '<div class="dash-bar"><div class="dash-bar-fill" style="width:' + Math.min(r,100) + '%"></div></div>' +
+        '<div class="dash-foot"><span>' + cnt + '/' + target + '</span>' +
+          '<span>객 ' + mcq + ' · 서 ' + essay + '</span>' +
+          (u ? '<span class="dash-unres">💬 ' + u + '</span>' : '') + '</div></div>';
+    }).join('') : '<p class="table-empty">역량이 없습니다.</p>';
+
+    // 조별
+    const teamAgg = ts.map(t => {
+      const tc = cs.filter(c => c.team_id === t.team_id);
+      const cnt = tc.reduce((a, c) => a + (counts[c.comp_id] || 0), 0);
+      const tgt = tc.reduce((a, c) => a + (Number(c.target_count) || 0), 0);
+      return { name: t.team_name, cnt, tgt, r: rateOf(cnt, tgt), n: tc.length };
+    });
+    document.getElementById('dash-team').innerHTML = teamAgg.length ? teamAgg.map(t =>
+      '<div class="dash-card"><div class="dash-card-top"><span class="dash-name">' + escHtml(t.name) + '</span>' +
+      '<span class="dash-rate ' + (t.r > 100 ? 'over' : (t.r < 100 ? 'under' : 'ok')) + '">' + t.r + '%</span></div>' +
+      '<div class="dash-meta">역량 ' + t.n + '개</div>' +
+      '<div class="dash-bar"><div class="dash-bar-fill" style="width:' + Math.min(t.r,100) + '%"></div></div>' +
+      '<div class="dash-foot"><span>' + t.cnt + '/' + t.tgt + '</span></div></div>').join('')
+      : '<p class="table-empty">조가 없습니다.</p>';
+  }
+  window.renderDashTab = renderDashTab;
+
+  function renderReviewTab() {
+    const f = document.getElementById('review-frame');
+    if (f && !f.src) f.src = 'review.html';
+  }
+  window.renderReviewTab = renderReviewTab;
+
+  function exportCsv() {
+    const items = window._dashItems || [];
+    if (!items.length) { UI.toast('내보낼 문항이 없습니다.', 'warning'); return; }
+    const cs = window._dashComps || [], ts = window._dashTeams || [];
+    const compName = (id) => { const c = cs.find(x => x.comp_id === id); return c ? c.comp_name : id; };
+    const teamName = (id) => { const t = ts.find(x => x.team_id === id); return t ? t.team_name : id; };
+    const head = ['역량','담당조','유형','난이도','문항','보기1','보기2','보기3','보기4','정답','모범답안','해설'];
+    const rows = items.map(i => [compName(i.comp_id), teamName(i.team_id), CONST.TYPES[i.item_type], i.difficulty,
+      i.question, i.option1||'', i.option2||'', i.option3||'', i.option4||'',
+      i.answer||'', i.model_answer||'', i.explanation||'']);
+    const esc = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    const csv = '﻿' + [head, ...rows].map(r => r.map(esc).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = '전체문항_' + Date.now() + '.csv';
+    document.body.appendChild(a); a.click(); setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 200);
+  }
+
   document.body.addEventListener('click', async (e) => {
     const b = e.target.closest('[data-act]'); if (!b) return;
     const act = b.dataset.act;
@@ -124,6 +196,8 @@
       if (ok) { UI.toast('저장되었습니다.', 'success'); UI.modal('comp-modal', false); renderCompsTab(); }
       else UI.toast('저장 실패', 'error');
     }
+    if (act === 'dash-refresh') renderDashTab();
+    if (act === 'dash-csv') exportCsv();
   });
 
   loadTeams();

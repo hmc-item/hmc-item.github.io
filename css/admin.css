@@ -1000,3 +1000,19 @@
   .skill-pool-grid           { grid-template-columns: 1fr; }
   .monitor-steps             { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ============================================================
+   2차 문항개발 — 진척 대시보드 스타일
+   ============================================================ */
+.dash-sub { font-size:14px; font-weight:700; color:var(--text-secondary); margin-bottom:12px; }
+.dash-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; }
+.dash-card { border:1.5px solid var(--border); border-radius:12px; padding:16px; background:var(--surface); }
+.dash-card-top { display:flex; justify-content:space-between; align-items:center; }
+.dash-name { font-weight:700; font-size:14px; }
+.dash-rate { font-weight:800; font-size:16px; }
+.dash-rate.over { color:#16a34a; } .dash-rate.under { color:#dc3545; } .dash-rate.ok { color:var(--hmc-blue); }
+.dash-meta { font-size:12px; color:var(--text-muted); margin:4px 0 8px; }
+.dash-bar { background:var(--bg); border-radius:100px; height:6px; overflow:hidden; }
+.dash-bar-fill { height:100%; background:var(--hmc-blue); border-radius:100px; }
+.dash-foot { display:flex; justify-content:space-between; gap:8px; font-size:12px; color:var(--text-muted); margin-top:8px; flex-wrap:wrap; }
+.dash-unres { color:#b45309; font-weight:700; }

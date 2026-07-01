@@ -28,8 +28,20 @@
         <tbody id="comps-tbody"><tr><td colspan="5" class="table-empty">탭을 선택하면 불러옵니다.</td></tr></tbody>
       </table></div></div></div>
   </div>
-  <div class="tab-content" id="tab-dash"></div>
-  <div class="tab-content" id="tab-review"></div>
+  <div class="tab-content" id="tab-dash">
+    <div class="card"><div class="card-header"><span class="card-title">진척 현황</span>
+      <div><button class="btn btn-secondary btn-sm" data-act="dash-refresh">🔄 새로고침</button>
+        <button class="btn btn-secondary btn-sm" data-act="dash-csv">⬇️ 전체 문항 CSV</button></div></div>
+      <div class="card-body">
+        <div class="dash-sub">역량별</div><div class="dash-grid" id="dash-comp"></div>
+        <div class="dash-sub" style="margin-top:24px;">조별</div><div class="dash-grid" id="dash-team"></div>
+      </div></div>
+  </div>
+  <div class="tab-content" id="tab-review">
+    <div class="card"><div class="card-body" style="padding:0;">
+      <iframe id="review-frame" style="width:100%;height:75vh;border:none;border-radius:12px;"></iframe>
+    </div></div>
+  </div>
 </div>
 
 <!-- 조 모달 -->

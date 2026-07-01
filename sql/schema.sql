@@ -4,8 +4,12 @@ create table if not exists teams (
   id          text primary key,
   team_id     text unique not null,
   team_name   text not null,
+  class_no    int,
   created_at  timestamptz default now()
 );
+
+-- 기존 프로젝트 대응(이미 teams가 있으면 컬럼만 추가)
+alter table teams add column if not exists class_no int;
 
 create table if not exists competencies (
   id            text primary key,

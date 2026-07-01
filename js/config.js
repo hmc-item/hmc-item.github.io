@@ -14,6 +14,8 @@ const CONST = {
     option4: '보기4', explanation: '해설', model_answer: '모범답안'
   },
   BUCKET: 'item-images',
+  CLASSES   : [1, 2, 3],
+  CLASS_LABEL: { 1: '1분반', 2: '2분반', 3: '3분반' },
   DEFAULT_TARGET: 50
 };
 window.CONST = CONST;

@@ -193,8 +193,89 @@
   }
   document.getElementById('im-type').addEventListener('change', applyTypeToggle);
 
+  // ===== 샘플 차용 =====
+  let borrowSamples = [];
+  window._borrowImages = null;
+
+  function borrowCard(sp) {
+    const typeLabel = CONST.TYPES[sp.item_type];
+    const tag = sp.comp_id === compId ? '<span class="comp-tag">🔗 이 역량</span>' : '';
+    const body = sp.item_type === 'mcq'
+      ? '<ol class="opt-list">' + [1,2,3,4].map(n => '<li class="' + (sp.answer === n ? 'correct' : '') + '">' +
+          escHtml(sp['option' + n] || '') + (sp.answer === n ? ' <span class="ans-tag">정답</span>' : '') + '</li>').join('') + '</ol>'
+      : '<div class="essay-model"><span class="field-label">모범답안</span>' + escHtml(sp.model_answer || '-') + '</div>';
+    return '<div class="item-card">' +
+      '<div class="item-card-head"><div class="sp-badges">' +
+        '<span class="type-badge type-' + sp.item_type + '">' + typeLabel + '</span>' +
+        '<span class="grade-badge">' + escHtml(sp.qual_grade || '-') + '</span>' +
+        '<span class="qual-badge">' + escHtml(sp.qual_name || '') + '</span>' + tag +
+      '</div><div class="item-actions">' +
+        '<button class="btn btn-primary btn-sm" data-act="borrow-pick" data-id="' + escHtml(sp.sample_id) + '">가져오기</button>' +
+      '</div></div>' +
+      '<div class="item-q">' + escHtml(sp.question) + '</div>' + body +
+      '<div class="item-exp"><span class="field-label">해설</span>' + escHtml(sp.explanation || '') + '</div></div>';
+  }
+
+  function renderBorrowList() {
+    const kw = document.getElementById('bw-f-kw').value.trim().toLowerCase();
+    const ft = document.getElementById('bw-f-type').value;
+    const fg = document.getElementById('bw-f-grade').value;
+    let list = borrowSamples.filter(sp =>
+      (!ft || sp.item_type === ft) && (!fg || sp.qual_grade === fg) &&
+      (!kw || (String(sp.question || '') + ' ' + String(sp.qual_name || '')).toLowerCase().includes(kw)));
+    // 이 역량 태그 우선 정렬
+    list = list.slice().sort((a, b) => (b.comp_id === compId ? 1 : 0) - (a.comp_id === compId ? 1 : 0));
+    document.getElementById('bw-list').innerHTML = list.length
+      ? list.map(borrowCard).join('')
+      : '<div class="empty-state">표시할 샘플이 없습니다.</div>';
+  }
+
+  async function openBorrowModal() {
+    if (!ctx.canEdit) return;
+    UI.showLoading('샘플 불러오는 중...');
+    borrowSamples = await API.getSampleItems();
+    UI.hideLoading();
+    document.getElementById('bw-f-kw').value = '';
+    document.getElementById('bw-f-type').value = '';
+    document.getElementById('bw-f-grade').innerHTML = '<option value="">자격등급 전체</option>' +
+      CONST.GRADES.map(g => '<option value="' + g + '">' + g + '</option>').join('');
+    const relatedN = borrowSamples.filter(sp => sp.comp_id === compId).length;
+    document.querySelector('#borrow-modal .modal-title').innerHTML =
+      '🧩 샘플에서 가져오기' + (relatedN ? ' <span class="comp-tag">이 역량 관련 ' + relatedN + '개</span>' : '');
+    renderBorrowList();
+    UI.modal('borrow-modal', true);
+  }
+
+  async function pickBorrow(sampleId) {
+    const sp = borrowSamples.find(x => x.sample_id === sampleId); if (!sp) return;
+    UI.showLoading('샘플 이미지 확인 중...');
+    const imgs = await API.getSampleImages(sampleId);
+    UI.hideLoading();
+    UI.modal('borrow-modal', false);
+    // 폼을 신규(빈 item_id)로 열되 내용 채움
+    openItemModal(null);
+    document.getElementById('im-type').value = sp.item_type;
+    document.getElementById('im-diff').value = String(CONST.GRADE_TO_DIFFICULTY[sp.qual_grade] || 1);
+    document.getElementById('im-question').value = sp.question || '';
+    document.getElementById('im-o1').value = sp.option1 || '';
+    document.getElementById('im-o2').value = sp.option2 || '';
+    document.getElementById('im-o3').value = sp.option3 || '';
+    document.getElementById('im-o4').value = sp.option4 || '';
+    document.getElementById('im-answer').value = sp.answer ? String(sp.answer) : '1';
+    document.getElementById('im-model').value = sp.model_answer || '';
+    document.getElementById('im-exp').value = sp.explanation || '';
+    document.getElementById('im-type').dispatchEvent(new Event('change')); // 유형 토글
+    window._borrowImages = imgs;
+    document.getElementById('im-borrow-note').innerHTML = imgs.length
+      ? '<div class="img-note">🧩 차용: 저장 시 이미지 ' + imgs.length + '개(' +
+        imgs.map(im => escHtml(CONST.AREA_LABEL[im.area] || im.area)).join(', ') + ')가 함께 복사됩니다.</div>'
+      : '<div class="img-note">🧩 샘플에서 가져온 내용입니다. 수정 후 저장하세요.</div>';
+  }
+
   function openItemModal(it) {
     modalImgItemId = null; // 열 때 stale 첨부영역 렌더 방지(아래 renderModalImages가 정확히 다시 그림)
+    window._borrowImages = null;
+    const bnote = document.getElementById('im-borrow-note'); if (bnote) bnote.innerHTML = '';
     document.getElementById('item-modal-id').value = it ? it.item_id : '';
     document.getElementById('im-type').value = it ? it.item_type : 'mcq';
     document.getElementById('im-diff').value = it ? String(it.difficulty) : '1';
@@ -247,6 +328,9 @@
     const b = e.target.closest('[data-act]'); if (!b) return;
     const act = b.dataset.act;
     if (act === 'add-item') { if (!ctx.canEdit) return; openItemModal(null); }
+    if (act === 'open-borrow') openBorrowModal();
+    if (act === 'borrow-close') UI.modal('borrow-modal', false);
+    if (act === 'borrow-pick') pickBorrow(b.dataset.id);
     if (act === 'item-close') UI.modal('item-modal', false);
     if (act === 'edit-item') openItemModal(items.find(i => i.item_id === b.dataset.id));
     if (act === 'del-item') {
@@ -277,6 +361,19 @@
       if (!body.explanation) { UI.toast('해설을 입력해주세요.', 'warning'); return; }
       UI.showLoading('저장 중...'); const r = await API.saveItem(body); UI.hideLoading();
       if (!r) { UI.toast('저장 실패', 'error'); return; }
+      // 차용 이미지 복제(신규 저장 + 가져온 이미지가 있을 때만)
+      const bimgs = window._borrowImages || [];
+      if (bimgs.length && r && r.item_id) {
+        let imgFail = 0;
+        for (let i = 0; i < bimgs.length; i++) {
+          UI.showLoading('이미지 복사 중... (' + (i + 1) + '/' + bimgs.length + ')');
+          const ok2 = await API.copySampleImageToItem(r.item_id, compId, bimgs[i]);
+          if (!ok2) imgFail++;
+        }
+        UI.hideLoading();
+        if (imgFail) UI.toast(imgFail + '개 이미지 복사 실패(문항은 저장됨)', 'warning');
+      }
+      window._borrowImages = null;
       UI.toast('저장되었습니다.', 'success'); UI.modal('item-modal', false); reload();
     }
     if (act === 'img-upload') {
@@ -322,6 +419,10 @@
 
   ['filter-type','filter-diff'].forEach(id =>
     document.getElementById(id).addEventListener('change', render));
+
+  ['bw-f-kw','bw-f-type','bw-f-grade'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.addEventListener('input', renderBorrowList);
+  });
 
   function jumpToItem(itemId) {
     const ft = document.getElementById('filter-type');

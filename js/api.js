@@ -148,6 +148,104 @@ const API = (() => {
     return true;
   }
 
+  // ===== Sample Items =====
+  async function getSampleItems(p) {
+    p = p || {};
+    let q = DB.from('sample_items').select('*');
+    if (p.comp_id) q = q.eq('comp_id', p.comp_id);
+    const { data, error } = await q;
+    if (error) { console.error('[getSampleItems]', error); return []; }
+    return (data || []).sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
+  }
+  async function getSampleCount() {
+    const { count, error } = await DB.from('sample_items').select('*', { count: 'exact', head: true });
+    if (error) { console.error('[getSampleCount]', error); return 0; }
+    return count || 0;
+  }
+  function normSample(b, idOverride) {
+    const isMcq = b.item_type === 'mcq';
+    const qn = (b.qual_name && String(b.qual_name).trim()) ? String(b.qual_name).trim() : CONST.DEFAULT_QUAL_NAME;
+    return {
+      sample_id: idOverride, item_type: b.item_type,
+      qual_grade: b.qual_grade || null, qual_name: qn,
+      comp_id: b.comp_id || null, category: b.category || null,
+      question: b.question || '',
+      option1: isMcq ? (b.option1 || '') : null,
+      option2: isMcq ? (b.option2 || '') : null,
+      option3: isMcq ? (b.option3 || '') : null,
+      option4: isMcq ? (b.option4 || '') : null,
+      answer : isMcq ? (b.answer != null ? Number(b.answer) : null) : null,
+      model_answer: isMcq ? null : (b.model_answer || ''),
+      explanation : b.explanation || '',
+      updated_at  : new Date().toISOString()
+    };
+  }
+  async function saveSampleItem(b) {
+    if (!b.item_type || !b.question || !b.explanation) return null;
+    if (b.sample_id) {
+      const { data } = await DB.from('sample_items').select('created_at').eq('sample_id', b.sample_id);
+      const created = (data && data[0]) ? data[0].created_at : new Date().toISOString();
+      const row = normSample(b, b.sample_id); row.created_at = created;
+      const ok = await saveRow('sample_items', 'sample_id', b.sample_id, row);
+      return ok ? true : null;
+    }
+    const id = generateId('sm');
+    const row = normSample(b, id); row.created_at = new Date().toISOString();
+    const ok = await saveRow('sample_items', null, null, row);
+    return ok ? { sample_id: id } : null;
+  }
+  async function deleteSampleItem(sampleId) {
+    const imgs = await getSampleImages(sampleId);
+    for (const im of imgs) { await deleteSampleImage(im); }
+    const { error } = await DB.from('sample_items').delete().eq('sample_id', sampleId);
+    if (error) { console.error('[deleteSampleItem]', error); return false; }
+    return true;
+  }
+
+  // ===== Sample Images =====
+  async function getSampleImages(sampleId) {
+    const { data, error } = await DB.from('sample_item_images').select('*').eq('sample_id', sampleId);
+    if (error) { console.error('[getSampleImages]', error); return []; }
+    return data || [];
+  }
+  async function getSampleImagesByIds(ids) {
+    if (!ids || !ids.length) return {};
+    const { data, error } = await DB.from('sample_item_images').select('*').in('sample_id', ids);
+    if (error) { console.error('[getSampleImagesByIds]', error); return {}; }
+    const m = {}; (data || []).forEach(r => { (m[r.sample_id] = m[r.sample_id] || []).push(r); });
+    return m;
+  }
+  async function uploadSampleImage(sampleId, area, file) {
+    const safe = file.name.replace(/[^\w.\-가-힣]/g, '_');
+    const path = 'samples/' + sampleId + '/' + Date.now() + '_' + safe;
+    const up = await DB.storage.from(CONST.BUCKET).upload(path, file, { upsert: false });
+    if (up.error) { console.error('[uploadSampleImage]', up.error); return null; }
+    const id = generateId('simg');
+    const ok = await saveRow('sample_item_images', null, null,
+      { image_id: id, sample_id: sampleId, area, file_path: path, file_name: file.name });
+    if (!ok) return null;
+    return { image_id: id, sample_id: sampleId, area, file_path: path, file_name: file.name };
+  }
+  async function deleteSampleImage(img) {
+    await DB.storage.from(CONST.BUCKET).remove([img.file_path]);
+    const { error } = await DB.from('sample_item_images').delete().eq('image_id', img.image_id);
+    if (error) { console.error('[deleteSampleImage]', error); return false; }
+    return true;
+  }
+
+  // ===== 차용: 샘플 이미지를 새 item으로 복제 =====
+  async function copySampleImageToItem(newItemId, compId, sImg) {
+    try {
+      const url = publicUrl(sImg.file_path);
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error('fetch ' + resp.status);
+      const blob = await resp.blob();
+      const file = new File([blob], sImg.file_name, { type: blob.type || 'application/octet-stream' });
+      const r = await uploadImage(newItemId, compId, sImg.area, file);
+      return !!r;
+    } catch (e) { console.error('[copySampleImageToItem]', e); return false; }
+  }
+
   // ===== Comments =====
   async function getComments(p) {
     p = p || {}; let q = DB.from('comments').select('*');
@@ -206,7 +304,10 @@ const API = (() => {
     getItems, getItemCounts, saveItem, deleteItem,
     getImages, getImagesByItems, uploadImage, deleteImage, publicUrl,
     getComments, getCommentsByItems, getUnresolvedCounts,
-    addComment, updateComment, setCommentResolved, deleteComment
+    addComment, updateComment, setCommentResolved, deleteComment,
+    getSampleItems, getSampleCount, saveSampleItem, deleteSampleItem,
+    getSampleImages, getSampleImagesByIds, uploadSampleImage, deleteSampleImage,
+    copySampleImageToItem
   };
 })();
 window.API = API;

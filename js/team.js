@@ -47,6 +47,25 @@
       : '<div class="empty-state">다른 조 역량이 없습니다.</div>';
   }
 
+  async function loadNotices() {
+    const box = document.getElementById('notice-box');
+    if (!box) return;
+    const list = await API.getNoticesForTeam(s.team_id);
+    if (!list.length) { box.innerHTML = ''; box.style.display = 'none'; return; }
+    box.style.display = 'block';
+    box.innerHTML = '<div class="notice-head">📢 공지사항</div>' +
+      '<div class="notice-list">' + list.map(n =>
+        '<div class="notice-card">' +
+          '<div class="notice-top">' +
+            (n.is_pinned ? '<span class="notice-pin">📌</span>' : '') +
+            '<span class="notice-badge ' + (n.is_common ? 'common' : 'team') + '">' +
+              (n.is_common ? '공통' : '우리 조') + '</span>' +
+            '<span class="notice-title">' + escHtml(n.title) + '</span>' +
+          '</div>' +
+          '<div class="notice-content">' + escHtml(n.content) + '</div>' +
+        '</div>').join('') + '</div>';
+  }
+
   document.querySelector('.page-wrapper').addEventListener('click', (e) => {
     const card = e.target.closest('.comp-card'); if (!card) return;
     const mine = card.dataset.mine === '1';
@@ -55,5 +74,5 @@
 
   // 페이지가 표시될 때마다(최초 로드 + 뒤로가기 bfcache 복원) 진도율 최신화
   // → 문항 작성 후 돌아오면 카운트가 항상 반영됨
-  window.addEventListener('pageshow', () => load());
+  window.addEventListener('pageshow', () => { load(); loadNotices(); });
 })();

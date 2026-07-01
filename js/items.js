@@ -77,6 +77,8 @@
     items = await API.getItems({ comp_id: compId });
     const imgMap = await API.getImagesByItems(items.map(i => i.item_id));
     window._imgMap = imgMap;
+    const cmMap = await API.getCommentsByItems(items.map(i => i.item_id));
+    window._cmMap = cmMap;
     UI.hideLoading();
     render();
   }
@@ -94,6 +96,36 @@
       ).join('') + '</div>' : '';
     });
   };
+
+  // ===== 코멘트: 리스트 표시 + 반영 완료 체크 =====
+  window.renderItemComments = function () {
+    const map = window._cmMap || {};
+    document.querySelectorAll('.item-comments-slot').forEach(slot => {
+      const list = map[slot.dataset.id] || [];
+      if (!list.length) { slot.innerHTML = ''; return; }
+      slot.innerHTML = '<div class="sme-cm-head">💬 코멘트 ' + list.length + '건</div>' +
+        list.map(c => '<div class="sme-cm' + (c.is_resolved ? ' done' : '') + '">' +
+          '<div class="sme-cm-top"><span class="sme-cm-author">' + escHtml(c.author_role) + '</span>' +
+            '<label class="sme-cm-check"><input type="checkbox" data-act="cm-resolve" data-id="' +
+              escHtml(c.comment_id) + '"' + (c.is_resolved ? ' checked' : '') + '> 반영 완료</label></div>' +
+          '<div class="sme-cm-body">' + escHtml(c.content) + '</div></div>').join('');
+    });
+  };
+
+  document.body.addEventListener('change', async (e) => {
+    const chk = e.target.closest('[data-act="cm-resolve"]'); if (!chk) return;
+    if (!ctx.canEdit) { chk.checked = !chk.checked; UI.toast('우리 조 문항만 반영 완료할 수 있습니다.', 'warning'); return; }
+    UI.showLoading('반영 상태 저장 중...');
+    const ok = await API.setCommentResolved(chk.dataset.id, chk.checked);
+    UI.hideLoading();
+    if (!ok) { chk.checked = !chk.checked; UI.toast('저장 실패', 'error'); return; }
+    UI.toast(chk.checked ? '반영 완료 처리되었습니다.' : '반영 완료가 해제되었습니다.', 'success');
+    // 메모리 맵 갱신(재로딩 없이)
+    const arr = (window._cmMap || {})[chk.closest('.item-comments-slot') ?
+      chk.closest('.item-comments-slot').dataset.id : ''] || [];
+    const c = arr.find(x => x.comment_id === chk.dataset.id); if (c) c.is_resolved = chk.checked;
+    chk.closest('.sme-cm').classList.toggle('done', chk.checked);
+  });
 
   // ===== 이미지: 모달 첨부/삭제 =====
   let modalImgItemId = null;

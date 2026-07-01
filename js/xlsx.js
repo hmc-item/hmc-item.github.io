@@ -105,6 +105,42 @@ const XlsxTool = (() => {
     }
   }
 
+  // items 레코드 배열 → 문항 업로드 템플릿과 동일한 2차원 배열(헤더 포함)
+  function buildItemAoa(items) {
+    const rows = items.map((it, i) => {
+      const isMcq = it.item_type === 'mcq';
+      return [
+        String(i + 1),
+        CONST.TYPES[it.item_type] || '',            // 객관식|서술형 (재업로드 호환 라벨)
+        it.difficulty != null ? String(it.difficulty) : '',
+        it.question || '',
+        isMcq ? (it.option1 || '') : '',
+        isMcq ? (it.option2 || '') : '',
+        isMcq ? (it.option3 || '') : '',
+        isMcq ? (it.option4 || '') : '',
+        isMcq && it.answer ? String(it.answer) : '',
+        isMcq ? '' : (it.model_answer || ''),
+        it.explanation || ''
+      ];
+    });
+    return [HEADERS].concat(rows);
+  }
+
+  // 문항 배열을 xlsx/csv로 저장. filename은 확장자 제외 베이스명.
+  function downloadItemRows(items, fmt, filename) {
+    const aoa = buildItemAoa(items);
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    const base = filename || '문항';
+    if (fmt === 'csv') {
+      const csv = '﻿' + XLSX.utils.sheet_to_csv(ws);   // UTF-8 BOM
+      triggerDownload(new Blob([csv], { type: 'text/csv;charset=utf-8' }), base + '.csv');
+    } else {
+      const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, '문항');
+      const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      triggerDownload(new Blob([out], { type: 'application/octet-stream' }), base + '.xlsx');
+    }
+  }
+
   function validateRows(raw) {
     return raw.map(r => {
       const type = CONST.TYPE_FROM_LABEL[r.문항유형];
@@ -160,6 +196,7 @@ const XlsxTool = (() => {
 
   return { downloadTemplate, parseFile, validateRows, HEADERS,
            downloadSampleTemplate, parseSampleFile, validateSampleRows, SAMPLE_HEADERS,
-           buildSampleAoa, downloadSampleRows };
+           buildSampleAoa, downloadSampleRows,
+           buildItemAoa, downloadItemRows };
 })();
 window.XlsxTool = XlsxTool;

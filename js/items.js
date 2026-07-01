@@ -37,6 +37,7 @@
     const exp = it.explanation ? '<div class="item-exp"><span class="field-label">해설</span>' + escHtml(it.explanation) + '</div>' : '';
     const actions = ctx.canEdit
       ? '<div class="item-actions">' +
+          '<button class="btn btn-secondary btn-sm" data-act="it-dl-one" data-id="' + escHtml(it.item_id) + '">⬇️ 다운로드</button>' +
           '<button class="btn btn-secondary btn-sm" data-act="edit-item" data-id="' + escHtml(it.item_id) + '">수정</button>' +
           '<button class="btn btn-danger btn-sm" data-act="del-item" data-id="' + escHtml(it.item_id) + '">삭제</button></div>'
       : '';
@@ -331,6 +332,31 @@
     const b = e.target.closest('[data-act]'); if (!b) return;
     const act = b.dataset.act;
     if (act === 'add-item') { if (!ctx.canEdit) return; openItemModal(null); }
+    if (act === 'it-dl-one') {
+      if (!ctx.canEdit) return;
+      const it = items.find(x => x.item_id === b.dataset.id);
+      if (!it) return;
+      const tail = String(it.item_id).slice(-4);
+      const cname = (comp && comp.comp_name ? comp.comp_name : '역량').replace(/[\\/:*?"<>|]/g, '');
+      XlsxTool.downloadItemRows([it], 'xlsx', '문항_' + cname + '_' + tail);
+    }
+    if (act === 'it-dl-all') {
+      if (!ctx.canEdit) return;
+      const list = filtered();
+      if (!list.length) { UI.toast('다운로드할 문항이 없습니다.', 'warning'); return; }
+      document.getElementById('it-dlall-count').textContent = list.length;
+      UI.modal('it-dlall-modal', true);
+    }
+    if (act === 'it-dlall-close') { UI.modal('it-dlall-modal', false); }
+    if (act === 'it-dlall-xlsx' || act === 'it-dlall-csv') {
+      if (!ctx.canEdit) { UI.modal('it-dlall-modal', false); return; }
+      const list = filtered();
+      if (!list.length) { UI.toast('다운로드할 문항이 없습니다.', 'warning'); UI.modal('it-dlall-modal', false); return; }
+      const fmt = act === 'it-dlall-csv' ? 'csv' : 'xlsx';
+      const cname = (comp && comp.comp_name ? comp.comp_name : '역량').replace(/[\\/:*?"<>|]/g, '');
+      XlsxTool.downloadItemRows(list, fmt, '문항_' + cname + '_' + list.length + '건');
+      UI.modal('it-dlall-modal', false);
+    }
     if (act === 'open-borrow') openBorrowModal();
     if (act === 'borrow-close') UI.modal('borrow-modal', false);
     if (act === 'borrow-pick') pickBorrow(b.dataset.id);

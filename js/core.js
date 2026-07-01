@@ -12,6 +12,11 @@ function escHtml(str) {
 function generateId(prefix) {
   return prefix + '_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
 }
+// Supabase Storage 객체 키는 ASCII만 허용(한글·특수문자 포함 시 Invalid key 400).
+// 스토리지 경로용으로만 사용 — 원본 파일명은 DB(file_name)에 그대로 보존해 화면 표시.
+function safeKey(name) {
+  return String(name == null ? '' : name).replace(/[^\w.\-]/g, '_');
+}
 // DELETE + INSERT (PATCH/upsert 금지)
 async function saveRow(table, matchCol, matchVal, rowObj) {
   if (matchVal != null) {
@@ -22,7 +27,7 @@ async function saveRow(table, matchCol, matchVal, rowObj) {
   if (insErr) { console.error('[saveRow.insert]', table, insErr); return false; }
   return true;
 }
-window.escHtml = escHtml; window.generateId = generateId; window.saveRow = saveRow;
+window.escHtml = escHtml; window.generateId = generateId; window.saveRow = saveRow; window.safeKey = safeKey;
 
 // ===== UI: 로딩/토스트/모달/확인 =====
 const UI = (() => {

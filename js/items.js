@@ -384,7 +384,7 @@
       const r = await API.uploadImage(modalImgItemId, ctx.compId, area, f);
       UI.hideLoading();
       if (r) { UI.toast('첨부되었습니다.', 'success'); window.renderModalImages(modalImgItemId); reload(); }
-      else UI.toast('업로드 실패', 'error');
+      else UI.toast('업로드 실패: ' + (API.uploadErrorMessage() || '알 수 없는 오류'), 'error');
     }
     if (act === 'img-del') {
       const im = (window._modalImgs || []).find(x => x.image_id === b.dataset.id);

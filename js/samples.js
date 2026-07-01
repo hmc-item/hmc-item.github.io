@@ -232,7 +232,7 @@
       const r = await API.uploadSampleImage(modalImgSampleId, area, f);
       UI.hideLoading();
       if (r) { UI.toast('첨부되었습니다.', 'success'); window.spRenderModalImages(modalImgSampleId); }
-      else UI.toast('업로드 실패', 'error');
+      else UI.toast('업로드 실패: ' + (API.uploadErrorMessage() || '알 수 없는 오류'), 'error');
     }
     if (act === 'sp-img-del') {
       const im = (window._spModalImgs || []).find(x => x.image_id === b.dataset.id);

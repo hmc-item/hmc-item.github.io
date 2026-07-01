@@ -1,5 +1,7 @@
 const API = (() => {
 
+  let lastUploadError = '';   // 최근 이미지 업로드 실패 사유(토스트로 노출 — 멤버가 원인 보고 가능)
+
   // ===== Teams =====
   async function getTeams() {
     const { data, error } = await DB.from('teams').select('*').order('team_name');
@@ -131,10 +133,10 @@ const API = (() => {
     return m;
   }
   async function uploadImage(itemId, compId, area, file) {
-    const safe = file.name.replace(/[^\w.\-가-힣]/g, '_');
+    const safe = safeKey(file.name);   // 스토리지 키는 ASCII만(한글 파일명 → Invalid key 400 방지)
     const path = compId + '/' + itemId + '/' + Date.now() + '_' + safe;
     const up = await DB.storage.from(CONST.BUCKET).upload(path, file, { upsert: false });
-    if (up.error) { console.error('[uploadImage]', up.error); return null; }
+    if (up.error) { console.error('[uploadImage]', up.error); lastUploadError = up.error.message || String(up.error); return null; }
     const id = generateId('img');
     const ok = await saveRow('item_images', null, null,
       { image_id: id, item_id: itemId, area, file_path: path, file_name: file.name });
@@ -216,10 +218,10 @@ const API = (() => {
     return m;
   }
   async function uploadSampleImage(sampleId, area, file) {
-    const safe = file.name.replace(/[^\w.\-가-힣]/g, '_');
+    const safe = safeKey(file.name);   // 스토리지 키는 ASCII만(한글 파일명 → Invalid key 400 방지)
     const path = 'samples/' + sampleId + '/' + Date.now() + '_' + safe;
     const up = await DB.storage.from(CONST.BUCKET).upload(path, file, { upsert: false });
-    if (up.error) { console.error('[uploadSampleImage]', up.error); return null; }
+    if (up.error) { console.error('[uploadSampleImage]', up.error); lastUploadError = up.error.message || String(up.error); return null; }
     const id = generateId('simg');
     const ok = await saveRow('sample_item_images', null, null,
       { image_id: id, sample_id: sampleId, area, file_path: path, file_name: file.name });
@@ -307,7 +309,8 @@ const API = (() => {
     addComment, updateComment, setCommentResolved, deleteComment,
     getSampleItems, getSampleCount, saveSampleItem, deleteSampleItem,
     getSampleImages, getSampleImagesByIds, uploadSampleImage, deleteSampleImage,
-    copySampleImageToItem
+    copySampleImageToItem,
+    uploadErrorMessage: () => lastUploadError
   };
 })();
 window.API = API;

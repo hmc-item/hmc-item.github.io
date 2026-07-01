@@ -289,6 +289,21 @@ const API = (() => {
     return true;
   }
 
+  // ===== Help texts =====
+  async function getHelpTexts() {
+    const { data, error } = await DB.from('help_texts').select('*');
+    if (error) { console.error('[getHelpTexts]', error); return []; }
+    return data || [];
+  }
+  async function getHelpText(role) {
+    const { data, error } = await DB.from('help_texts').select('body').eq('role', role);
+    if (error) { console.error('[getHelpText]', error); return null; }
+    return data && data[0] ? data[0].body : null;
+  }
+  async function saveHelpText(role, body) {
+    return saveRow('help_texts', 'role', role, { role, body });
+  }
+
   // ===== Comments =====
   async function getComments(p) {
     p = p || {}; let q = DB.from('comments').select('*');
@@ -352,6 +367,7 @@ const API = (() => {
     getSampleImages, getSampleImagesByIds, uploadSampleImage, deleteSampleImage,
     copySampleImageToItem,
     getNotices, getNoticesForTeam, saveNotice, deleteNotice,
+    getHelpTexts, getHelpText, saveHelpText,
     uploadErrorMessage: () => lastUploadError
   };
 })();

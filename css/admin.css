@@ -1,0 +1,1002 @@
+/* ============================================================
+   어드민 페이지 전용 스타일 (v3.0 — HTML 제출본 안내 추가)
+   ============================================================ */
+
+/* ============================================================
+   헤더
+   ============================================================ */
+.admin-header {
+  display        : flex;
+  justify-content: space-between;
+  align-items    : flex-start;
+  margin-bottom  : 28px;
+}
+
+/* ============================================================
+   탭 메뉴
+   ============================================================ */
+.admin-tabs {
+  display       : flex;
+  gap           : 4px;
+  margin-bottom : 24px;
+  border-bottom : 2px solid var(--border);
+  padding-bottom: 0;
+  flex-wrap     : wrap;
+}
+
+.admin-tab {
+  padding      : 10px 20px;
+  border       : none;
+  background   : none;
+  font-size    : 14px;
+  font-weight  : 600;
+  color        : var(--text-muted);
+  cursor       : pointer;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  transition   : var(--transition);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  white-space  : nowrap;
+}
+.admin-tab:hover { color: var(--hmc-blue); }
+.admin-tab.active {
+  color       : var(--hmc-blue);
+  border-color: var(--hmc-blue);
+  background  : var(--hmc-blue-light);
+}
+
+.tab-content        { display: none; }
+.tab-content.active { display: block; }
+
+/* ============================================================
+   테이블
+   ============================================================ */
+.table-wrap { overflow-x: auto; }
+
+.admin-table {
+  width          : 100%;
+  border-collapse: collapse;
+  font-size      : 14px;
+}
+
+.admin-table th {
+  background    : var(--bg);
+  padding       : 12px 16px;
+  text-align    : left;
+  font-size     : 12px;
+  font-weight   : 700;
+  color         : var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom : 2px solid var(--border);
+  white-space   : nowrap;
+}
+
+.admin-table td {
+  padding       : 14px 16px;
+  border-bottom : 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.admin-table tr:hover td      { background: var(--bg); }
+.admin-table tr:last-child td { border-bottom: none; }
+
+.table-empty {
+  text-align: center;
+  color     : var(--text-muted);
+  font-size : 14px;
+  padding   : 40px !important;
+}
+
+.td-desc {
+  max-width    : 200px;
+  overflow     : hidden;
+  text-overflow: ellipsis;
+  white-space  : nowrap;
+  color        : var(--text-secondary);
+}
+
+.td-center { text-align: center; }
+
+.td-actions {
+  display  : flex;
+  gap      : 6px;
+  flex-wrap: wrap;
+}
+
+/* 테이블 뱃지 */
+.table-badge {
+  display      : inline-block;
+  padding      : 3px 10px;
+  border-radius: 20px;
+  font-size    : 12px;
+  font-weight  : 600;
+}
+.badge-blue   { background: var(--hmc-blue-light);  color: var(--hmc-blue);   }
+.badge-orange { background: var(--hmc-orange-light); color: var(--hmc-orange); }
+
+/* 활성화 상태 */
+.status-dot {
+  display      : inline-block;
+  width        : 8px;
+  height       : 8px;
+  border-radius: 50%;
+  margin-right : 6px;
+}
+.status-dot.active   { background: var(--success); }
+.status-dot.inactive { background: var(--text-muted); }
+
+/* ============================================================
+   그룹 관리
+   ============================================================ */
+.group-manage-grid {
+  display              : grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap                  : 20px;
+}
+
+.group-manage-card {
+  border       : 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow     : hidden;
+}
+
+.group-manage-header {
+  padding        : 14px 20px;
+  display        : flex;
+  justify-content: space-between;
+  align-items    : center;
+}
+
+.group-header-info {
+  display       : flex;
+  flex-direction: column;
+  gap           : 4px;
+}
+
+.group-manage-name {
+  font-size  : 15px;
+  font-weight: 700;
+  color      : #fff;
+}
+
+.group-manage-count {
+  font-size: 13px;
+  color    : rgba(255,255,255,0.8);
+}
+
+.btn-group-edit {
+  background   : rgba(255,255,255,0.2);
+  border       : 1px solid rgba(255,255,255,0.4);
+  color        : #fff;
+  padding      : 4px 10px;
+  border-radius: var(--radius-sm);
+  font-size    : 12px;
+  cursor       : pointer;
+  transition   : var(--transition);
+  white-space  : nowrap;
+}
+.btn-group-edit:hover { background: rgba(255,255,255,0.35); }
+
+.group-edit-form {
+  padding      : 16px;
+  background   : var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.group-edit-actions {
+  display        : flex;
+  justify-content: flex-end;
+  gap            : 8px;
+  margin-top     : 8px;
+}
+
+.color-pick-wrap {
+  display    : flex;
+  align-items: center;
+  gap        : 10px;
+}
+
+.color-picker {
+  width        : 48px;
+  height       : 36px;
+  border       : 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor       : pointer;
+  padding      : 2px;
+}
+
+.color-pick-label {
+  font-size  : 13px;
+  color      : var(--text-secondary);
+  font-family: monospace;
+}
+
+.group-manage-body {
+  padding       : 16px;
+  display       : flex;
+  flex-direction: column;
+  gap           : 10px;
+}
+
+.group-job-item {
+  display    : flex;
+  align-items: center;
+  gap        : 10px;
+  font-size  : 14px;
+}
+
+.group-job-item span {
+  flex      : 1;
+  font-weight: 500;
+}
+
+.group-job-select {
+  width    : auto;
+  padding  : 4px 28px 4px 8px;
+  font-size: 12px;
+}
+
+.group-empty {
+  font-size : 13px;
+  color     : var(--text-muted);
+  text-align: center;
+  padding   : 16px 0;
+}
+
+/* ============================================================
+   진행 현황 (4단계 기준)
+   ============================================================ */
+.monitor-grid {
+  display              : grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap                  : 16px;
+}
+
+.monitor-card {
+  background   : var(--bg);
+  border       : 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  padding      : 16px 20px;
+  transition   : box-shadow 0.2s;
+}
+.monitor-card:hover {
+  box-shadow: 0 4px 16px rgba(0,52,120,0.08);
+}
+
+.monitor-card-top {
+  display        : flex;
+  justify-content: space-between;
+  align-items    : center;
+  margin-bottom  : 10px;
+}
+
+.monitor-job-name {
+  font-size  : 14px;
+  font-weight: 700;
+  color      : var(--text-primary);
+}
+
+.monitor-rate {
+  font-size  : 16px;
+  font-weight: 800;
+  color      : var(--hmc-blue);
+}
+
+.monitor-bar {
+  background   : var(--border);
+  border-radius: 100px;
+  height       : 6px;
+  overflow     : hidden;
+  margin-bottom: 8px;
+}
+
+.monitor-bar-fill {
+  height       : 100%;
+  border-radius: 100px;
+  transition   : width 0.8s ease;
+  min-width    : 2px;
+}
+
+/* ✅ 4단계 뱃지 그리드 */
+.monitor-steps {
+  display              : grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap                  : 4px;
+  margin-bottom        : 8px;
+}
+
+.monitor-steps .step-badge {
+  font-size      : 10px;
+  padding        : 4px 4px;
+  border-radius  : 6px;
+  background     : #f0f0f0;
+  color          : var(--text-muted);
+  border         : 1.5px solid #e0e0e0;
+  text-align     : center;
+  white-space    : nowrap;
+  overflow       : hidden;
+  text-overflow  : ellipsis;
+  display        : flex;
+  align-items    : center;
+  justify-content: center;
+  font-weight    : 600;
+}
+.monitor-steps .step-badge.done {
+  background  : #e8f5e9;
+  color       : #2e7d32;
+  border-color: #a5d6a7;
+  font-weight : 700;
+}
+
+.monitor-meta {
+  display        : flex;
+  justify-content: space-between;
+  font-size      : 12px;
+  color          : var(--text-muted);
+}
+
+/* ============================================================
+   🆕 진행 현황 — HTML 제출본 안내 (v3.0)
+   ============================================================ */
+.monitor-submit-guide {
+  display      : flex;
+  align-items  : center;
+  gap          : 8px;
+  margin-top   : 10px;
+  padding      : 10px 14px;
+  background   : #f0f4ff;
+  border       : 1px solid #c5d5f0;
+  border-radius: 8px;
+  font-size    : 13px;
+  color        : #3a5a9a;
+  line-height  : 1.5;
+}
+.monitor-submit-icon { font-size: 16px; flex-shrink: 0; }
+.monitor-submit-text { flex: 1; }
+
+/* ============================================================
+   비밀번호 모달
+   ============================================================ */
+.pw-modal-desc {
+  font-size    : 14px;
+  color        : var(--text-secondary);
+  padding      : 12px 16px;
+  background   : var(--bg);
+  border-radius: var(--radius-sm);
+}
+
+.required { color: var(--danger); font-weight: 700; }
+
+/* ============================================================
+   예시 데이터 탭
+   ============================================================ */
+
+/* 예시 탭 버튼 */
+.example-tabs {
+  display       : flex;
+  gap           : 6px;
+  margin-bottom : 24px;
+  border-bottom : 2px solid var(--border);
+  padding-bottom: 0;
+  flex-wrap     : wrap;
+}
+
+.example-tab {
+  padding      : 10px 20px;
+  border       : 1.5px solid transparent;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  background   : var(--bg);
+  color        : var(--text-secondary);
+  font-size    : 14px;
+  font-weight  : 600;
+  cursor       : pointer;
+  transition   : var(--transition);
+  white-space  : nowrap;
+  position     : relative;
+  bottom       : -2px;
+}
+.example-tab:hover {
+  background  : #f0f4ff;
+  color       : var(--hmc-blue);
+  border-color: var(--hmc-blue);
+}
+.example-tab.active {
+  background   : var(--surface);
+  color        : var(--hmc-blue);
+  border-color : var(--hmc-blue);
+  border-bottom: 2px solid var(--surface);
+  font-weight  : 700;
+  z-index      : 1;
+}
+
+.example-tab-content        { display: none; }
+.example-tab-content.active { display: block; }
+
+/* 섹션 헤더 */
+.example-section-header {
+  display        : flex;
+  align-items    : center;
+  justify-content: space-between;
+  flex-wrap      : wrap;
+  gap            : 10px;
+  margin-bottom  : 16px;
+  padding        : 16px 20px;
+  background     : #f8f9fc;
+  border         : 1px solid var(--border);
+  border-radius  : 10px;
+}
+
+.example-section-header span:first-child {
+  font-size  : 15px;
+  font-weight: 700;
+  color      : var(--text-primary);
+}
+
+.example-section-header .card-desc {
+  font-size  : 13px;
+  color      : var(--text-muted);
+  font-weight: 400;
+}
+
+/* 섹션 설명 */
+.example-section-desc {
+  font-size    : 13px;
+  color        : var(--text-muted);
+  line-height  : 1.6;
+  margin-bottom: 16px;
+  padding      : 10px 14px;
+  background   : #f8f9fc;
+  border-left  : 3px solid var(--hmc-blue);
+  border-radius: 0 6px 6px 0;
+}
+
+/* 예시 아이템 (Step2 핵심과업) */
+.example-item {
+  display        : flex;
+  align-items    : center;
+  justify-content: space-between;
+  gap            : 16px;
+  padding        : 16px 20px;
+  background     : var(--surface);
+  border         : 1.5px solid var(--border);
+  border-radius  : 12px;
+  margin-bottom  : 10px;
+  transition     : box-shadow 0.2s, border-color 0.2s;
+}
+.example-item:hover {
+  box-shadow  : 0 4px 16px rgba(0,52,120,0.08);
+  border-color: var(--hmc-blue);
+}
+
+.example-item-left {
+  display       : flex;
+  flex-direction: column;
+  gap           : 5px;
+  flex          : 1;
+  min-width     : 0;
+}
+
+.example-item-name {
+  font-size  : 15px;
+  font-weight: 700;
+  color      : var(--text-primary);
+}
+
+.example-item-sub {
+  font-size  : 13px;
+  color      : var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* 메타 칩 (사용공구/사용자재) */
+.example-item-meta-row {
+  display   : flex;
+  flex-wrap : wrap;
+  gap       : 6px;
+  margin-top: 2px;
+}
+
+.meta-chip {
+  display      : inline-flex;
+  align-items  : center;
+  gap          : 4px;
+  font-size    : 12px;
+  color        : var(--text-muted);
+  background   : #f0f4ff;
+  border       : 1px solid #dce3f5;
+  border-radius: 20px;
+  padding      : 2px 10px;
+  white-space  : nowrap;
+}
+
+.example-item-actions {
+  display    : flex;
+  gap        : 8px;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   Step 1: 표준 과업수준표 입력 그리드
+   ============================================================ */
+.standard-level-input-grid {
+  display              : grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap                  : 14px;
+  margin-bottom        : 20px;
+}
+
+.standard-level-input-col {
+  border        : 1.5px solid var(--border);
+  border-radius : 12px;
+  overflow      : hidden;
+  display       : flex;
+  flex-direction: column;
+}
+
+.standard-level-input-header {
+  display    : flex;
+  align-items: center;
+  gap        : 8px;
+  padding    : 12px 14px;
+  font-size  : 14px;
+  font-weight: 700;
+}
+
+.standard-level-input-body {
+  flex   : 1;
+  padding: 12px;
+}
+
+.standard-level-textarea {
+  width        : 100%;
+  min-height   : 200px;
+  resize       : vertical;
+  font-size    : 13px;
+  line-height  : 1.7;
+  border       : 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding      : 10px 12px;
+  background   : var(--surface);
+  color        : var(--text-primary);
+  transition   : border-color 0.15s;
+  box-sizing   : border-box;
+}
+.standard-level-textarea:focus {
+  outline     : none;
+  border-color: var(--hmc-blue);
+  box-shadow  : 0 0 0 3px rgba(0,52,120,0.08);
+}
+
+.standard-level-save-wrap {
+  display    : flex;
+  align-items: center;
+  gap        : 14px;
+  padding    : 16px 0 4px;
+  flex-wrap  : wrap;
+}
+
+.standard-level-save-desc {
+  font-size : 13px;
+  color     : var(--text-muted);
+  line-height: 1.5;
+}
+
+/* ============================================================
+   Step 3: 운영진 작성예시 카드
+   ============================================================ */
+.example-tasklevel-card {
+  background   : var(--surface);
+  border       : 1.5px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 12px;
+  overflow     : hidden;
+  transition   : box-shadow 0.2s;
+}
+.example-tasklevel-card:hover {
+  box-shadow: 0 4px 16px rgba(0,52,120,0.08);
+}
+
+.example-tasklevel-header {
+  display        : flex;
+  align-items    : center;
+  justify-content: space-between;
+  padding        : 14px 18px;
+  background     : linear-gradient(90deg, #f0f4ff 0%, #fff 100%);
+  border-bottom  : 1px solid #e8eaf0;
+  gap            : 12px;
+}
+
+.example-tasklevel-task-info {
+  display       : flex;
+  flex-direction: column;
+  gap           : 3px;
+  flex          : 1;
+  min-width     : 0;
+}
+
+.example-tasklevel-body {
+  padding       : 12px 18px 16px;
+  display       : flex;
+  flex-direction: column;
+  gap           : 8px;
+}
+
+.tasklevel-summary-row {
+  display      : flex;
+  align-items  : flex-start;
+  gap          : 10px;
+  padding      : 8px 12px;
+  border-radius: 8px;
+  background   : #f8f9fc;
+  border       : 1px solid #eee;
+}
+.tasklevel-summary-row.has-data {
+  background  : #f0f7ff;
+  border-color: #c5d8f5;
+}
+
+.tasklevel-summary-desc {
+  font-size  : 13px;
+  color      : var(--text-secondary);
+  line-height: 1.5;
+  flex       : 1;
+}
+
+/* ============================================================
+   Step 4: 스킬 풀 목록
+   ============================================================ */
+.skill-pool-grid {
+  display              : grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap                  : 10px;
+  margin-top           : 4px;
+}
+
+.skill-pool-item {
+  display        : flex;
+  align-items    : center;
+  justify-content: space-between;
+  gap            : 10px;
+  padding        : 12px 16px;
+  background     : var(--surface);
+  border         : 1.5px solid var(--border);
+  border-radius  : 10px;
+  transition     : box-shadow 0.15s, border-color 0.15s;
+}
+.skill-pool-item:hover {
+  box-shadow  : 0 2px 10px rgba(0,52,120,0.08);
+  border-color: var(--hmc-blue);
+}
+
+.skill-pool-item-name {
+  font-size    : 14px;
+  font-weight  : 600;
+  color        : var(--text-primary);
+  flex         : 1;
+  min-width    : 0;
+  overflow     : hidden;
+  text-overflow: ellipsis;
+  white-space  : nowrap;
+}
+
+.skill-pool-item-actions {
+  display    : flex;
+  gap        : 6px;
+  flex-shrink: 0;
+}
+
+/* btn-xs 공통 */
+.btn-xs {
+  padding      : 3px 8px;
+  font-size    : 11px;
+  border-radius: 4px;
+  line-height  : 1.4;
+}
+
+/* ============================================================
+   AI 프롬프트 PPT 탭 (Step1~4)
+   ============================================================ */
+.ppt-url-guide {
+  background   : #e8f4fd;
+  border       : 1px solid #b3d7f5;
+  border-left  : 4px solid var(--hmc-blue);
+  border-radius: 0 10px 10px 0;
+  padding      : 16px 20px;
+  margin-bottom: 28px;
+  font-size    : 14px;
+  color        : #004a99;
+  line-height  : 1.7;
+}
+
+.ppt-url-list {
+  display       : flex;
+  flex-direction: column;
+  gap           : 16px;
+}
+
+.ppt-url-item {
+  background    : var(--surface);
+  border        : 1.5px solid var(--border);
+  border-radius : 14px;
+  padding       : 20px 24px;
+  display       : flex;
+  flex-direction: column;
+  gap           : 12px;
+  transition    : box-shadow 0.2s, border-color 0.2s;
+}
+.ppt-url-item:hover {
+  box-shadow  : 0 4px 16px rgba(0,52,120,0.08);
+  border-color: var(--hmc-blue);
+}
+
+.ppt-url-step-label {
+  display    : flex;
+  align-items: center;
+  gap        : 10px;
+  font-size  : 15px;
+  font-weight: 700;
+  color      : var(--text-primary);
+}
+
+.ppt-step-badge {
+  display      : inline-flex;
+  align-items  : center;
+  padding      : 4px 14px;
+  background   : var(--hmc-blue);
+  color        : #fff;
+  border-radius: 20px;
+  font-size    : 13px;
+  font-weight  : 700;
+  white-space  : nowrap;
+}
+
+.ppt-url-input-wrap {
+  display    : flex;
+  align-items: center;
+  gap        : 10px;
+}
+
+.ppt-url-input-wrap .form-control {
+  flex     : 1;
+  font-size: 13px;
+  padding  : 9px 14px;
+}
+
+.ppt-url-status {
+  font-size  : 13px;
+  font-weight: 600;
+  padding    : 4px 0;
+}
+.ppt-url-status.ppt-registered { color: #2e7d32; }
+.ppt-url-status.ppt-empty      { color: var(--text-muted); }
+
+/* ============================================================
+   단계 배지 (admin.css 자체 선언 — workbook.css 없는 페이지 대비)
+   ============================================================ */
+.stage-badge {
+  display      : inline-block;
+  padding      : 3px 12px;
+  border-radius: 20px;
+  font-size    : 12px;
+  font-weight  : 700;
+  white-space  : nowrap;
+  flex-shrink  : 0;
+}
+.stage-badge.stage-assistant  { background: #6c757d; color: #fff; }
+.stage-badge.stage-technician { background: #0d6efd; color: #fff; }
+.stage-badge.stage-specialist { background: #198754; color: #fff; }
+.stage-badge.stage-master     { background: #dc3545; color: #fff; }
+
+/* 단계 점 */
+.stage-dot {
+  display       : inline-block;
+  width         : 10px;
+  height        : 10px;
+  border-radius : 50%;
+  margin-right  : 6px;
+  flex-shrink   : 0;
+  vertical-align: middle;
+}
+.dot-assistant  { background: #6c757d; }
+.dot-technician { background: #0d6efd; }
+.dot-specialist { background: #198754; }
+.dot-master     { background: #dc3545; }
+
+/* 단계별 배경색 */
+.stage-assistant-bg  { background: #6c757d; color: #fff; }
+.stage-technician-bg { background: #0d6efd; color: #fff; }
+.stage-specialist-bg { background: #198754; color: #fff; }
+.stage-master-bg     { background: #dc3545; color: #fff; }
+
+/* ============================================================
+   Step3 모달 가이드 (admin 모달에서도 사용)
+   ============================================================ */
+.tasklevel-modal-guide {
+  background   : #e8f4fd;
+  border-left  : 4px solid #0066cc;
+  border-radius: 0 8px 8px 0;
+  padding      : 10px 14px;
+  margin-bottom: 16px;
+  font-size    : 13px;
+  color        : #004a99;
+  line-height  : 1.6;
+}
+
+.tasklevel-stage-list {
+  display       : flex;
+  flex-direction: column;
+  gap           : 12px;
+}
+
+.tasklevel-stage-item {
+  border       : 1.5px solid var(--border);
+  border-radius: 10px;
+  overflow     : hidden;
+  transition   : border-color 0.2s;
+}
+.tasklevel-stage-item:has(.tasklevel-checkbox:checked) {
+  border-color: #0066cc;
+}
+
+.tasklevel-stage-check-label {
+  display    : flex;
+  align-items: center;
+  gap        : 12px;
+  padding    : 12px 16px;
+  cursor     : pointer;
+  background : #f8f9fc;
+  user-select: none;
+  transition : background 0.15s;
+}
+.tasklevel-stage-check-label:hover { background: #eef2ff; }
+
+.tasklevel-checkbox {
+  width       : 18px;
+  height      : 18px;
+  cursor      : pointer;
+  accent-color: var(--hmc-blue);
+  flex-shrink : 0;
+}
+
+.tasklevel-desc-wrap {
+  padding   : 12px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.tasklevel-textarea {
+  width      : 100%;
+  resize     : vertical;
+  font-size  : 13px;
+  line-height: 1.7;
+  min-height : 80px;
+}
+
+/* ============================================================
+   모달 관련 (admin 페이지 고유)
+   ============================================================ */
+.modal-lg {
+  max-width: 720px;
+  width    : 95%;
+}
+
+.modal-field-row-2col {
+  display              : grid;
+  grid-template-columns: 1fr 1fr;
+  gap                  : 16px;
+  margin-bottom        : 16px;
+}
+
+.form-label-guide {
+  display    : block;
+  font-size  : 12px;
+  font-weight: 400;
+  color      : var(--text-muted);
+  margin-top : 3px;
+}
+
+.modal-title-sub {
+  font-size  : 14px;
+  font-weight: 400;
+  color      : var(--text-muted);
+  margin-left: 8px;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+/* ============================================================
+   AI 프롬프트 텍스트 입력 (v3.1)
+   ============================================================ */
+.ai-prompt-input-wrap {
+  width: 100%;
+}
+
+.ai-prompt-textarea {
+  width      : 100%;
+  resize     : vertical;
+  font-size  : 13px;
+  line-height: 1.7;
+  min-height : 140px;
+  font-family: 'Malgun Gothic', sans-serif;
+}
+
+.ai-prompt-actions {
+  display    : flex;
+  align-items: center;
+  gap        : 10px;
+  margin-top : 8px;
+  justify-content: flex-end;
+}
+
+/* ── PPT 탭 직무 선택 ── */
+.ppt-job-select-wrap  { margin-bottom: 20px; }
+.ppt-job-status-msg   { display: block; margin-top: 6px; font-size: 13px;
+                        color: var(--text-secondary); }
+
+/* ── Step 배지 서브 ── */
+.ppt-step-badge-sub   { font-size: 11px; padding: 2px 8px; border-radius: 10px;
+                        background: #e0f2fe; color: #0369a1;
+                        margin-left: 6px; vertical-align: middle; }
+
+/* ── 카드별 다운로드 미리보기 ── */
+.ppt-task-cards       { margin-top: 12px; padding: 12px 16px;
+                        background: var(--bg-secondary, #f8f9fa);
+                        border-radius: 8px;
+                        border: 1px solid var(--border-color, #e2e8f0); }
+.ppt-cards-title      { font-size: 13px; font-weight: 600;
+                        color: var(--text-secondary); margin-bottom: 10px; }
+.ppt-cards-grid       { display: flex; flex-direction: column; gap: 8px; }
+.ppt-card-item        { display: flex; align-items: center;
+                        justify-content: space-between;
+                        padding: 8px 12px; background: #fff;
+                        border-radius: 6px;
+                        border: 1px solid var(--border-color, #e2e8f0); }
+.ppt-card-header      { display: flex; align-items: center;
+                        gap: 8px; flex: 1; min-width: 0; }
+.ppt-card-num         { font-size: 12px; font-weight: 700; color: #fff;
+                        background: var(--primary, #003478);
+                        border-radius: 50%; width: 22px; height: 22px;
+                        display: flex; align-items: center;
+                        justify-content: center; flex-shrink: 0; }
+.ppt-card-name        { font-size: 14px; font-weight: 500;
+                        white-space: nowrap; overflow: hidden;
+                        text-overflow: ellipsis; }
+.ppt-card-data-badge  { font-size: 11px; padding: 2px 7px; border-radius: 10px;
+                        background: #f1f5f9; color: #94a3b8;
+                        white-space: nowrap; flex-shrink: 0; }
+.ppt-card-data-badge.has-data { background: #dcfce7; color: #16a34a; }
+.ppt-card-dl-btn      { flex-shrink: 0; }
+
+
+
+/* ============================================================
+   반응형
+   ============================================================ */
+@media (max-width: 1024px) {
+  .standard-level-input-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .admin-tabs                { flex-wrap: wrap; }
+  .group-manage-grid         { grid-template-columns: 1fr; }
+  .monitor-grid              { grid-template-columns: 1fr; }
+  .td-actions                { flex-direction: column; }
+  .standard-level-input-grid { grid-template-columns: 1fr 1fr; }
+  .skill-pool-grid           { grid-template-columns: repeat(2, 1fr); }
+  .ppt-url-input-wrap        { flex-direction: column; align-items: stretch; }
+  .monitor-steps             { grid-template-columns: repeat(2, 1fr); }
+  .modal-field-row-2col      { grid-template-columns: 1fr; }
+  .monitor-submit-guide      { flex-direction: column; align-items: flex-start; }
+}
+
+@media (max-width: 480px) {
+  .example-tab               { padding: 8px 12px; font-size: 12px; }
+  .standard-level-input-grid { grid-template-columns: 1fr; }
+  .skill-pool-grid           { grid-template-columns: 1fr; }
+  .monitor-steps             { grid-template-columns: repeat(2, 1fr); }
+}

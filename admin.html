@@ -1,0 +1,42 @@
+<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>관리자 | 문항개발 워크샵</title>
+<link rel="stylesheet" href="css/common.css"><link rel="stylesheet" href="css/admin.css"></head>
+<body><nav id="navbar"></nav><div class="page-wrapper">
+  <div class="admin-header"><div><h1 class="page-title">관리자</h1>
+    <p class="page-desc">조·역량 관리 및 진척 현황</p></div></div>
+  <div class="admin-tabs">
+    <button class="admin-tab active" data-tab="teams">🗂️ 조 관리</button>
+    <button class="admin-tab" data-tab="comps">📋 역량 관리</button>
+    <button class="admin-tab" data-tab="dash">📊 진척 대시보드</button>
+    <button class="admin-tab" data-tab="review">💬 코멘트</button>
+  </div>
+
+  <div class="tab-content active" id="tab-teams"><div class="card">
+    <div class="card-header"><span class="card-title">조 목록</span>
+      <button class="btn btn-primary btn-sm" data-act="add-team">+ 조 추가</button></div>
+    <div class="card-body"><div class="table-wrap"><table class="admin-table">
+      <thead><tr><th>직무명(조)</th><th>등록일</th><th>관리</th></tr></thead>
+      <tbody id="teams-tbody"><tr><td colspan="3" class="table-empty">불러오는 중...</td></tr></tbody>
+    </table></div></div></div></div>
+
+  <div class="tab-content" id="tab-comps"></div>
+  <div class="tab-content" id="tab-dash"></div>
+  <div class="tab-content" id="tab-review"></div>
+</div>
+
+<!-- 조 모달 -->
+<div id="team-modal" class="modal-backdrop" style="display:none;"><div class="modal" style="max-width:440px;">
+  <div class="modal-header"><h2 class="modal-title" id="team-modal-title">조 추가</h2>
+    <button class="modal-close" data-act="team-close">✕</button></div>
+  <div class="modal-body"><input type="hidden" id="team-modal-id">
+    <div class="form-group"><label class="form-label">직무명(조) <span class="required">*</span></label>
+      <input type="text" id="team-modal-name" class="form-control" placeholder="예: 기계보전"></div></div>
+  <div class="modal-footer"><button class="btn btn-secondary" data-act="team-close">취소</button>
+    <button class="btn btn-primary" data-act="team-save">저장</button></div>
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script><script src="js/core.js"></script>
+<script src="js/session.js"></script><script src="js/api.js"></script><script src="js/admin.js"></script>
+</body></html>

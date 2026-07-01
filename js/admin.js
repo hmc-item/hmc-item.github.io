@@ -15,6 +15,7 @@
     if (t.dataset.tab === 'dash')  window.renderDashTab  && window.renderDashTab();
     if (t.dataset.tab === 'review') window.renderReviewTab && window.renderReviewTab();
     if (t.dataset.tab === 'notices') window.renderNotices && window.renderNotices();
+    if (t.dataset.tab === 'help') window.renderHelpTab && window.renderHelpTab();
   });
 
   // ---- 조 관리 ----
@@ -194,6 +195,26 @@
   }
   window.renderNotices = renderNotices;
 
+  // ---- 사용법 관리 ----
+  async function loadHelpForRole(role) {
+    let body = null;
+    try { body = await API.getHelpText(role); } catch (e) { console.error(e); }
+    if (body == null) body = (window.DEFAULT_HELP && window.DEFAULT_HELP[role]) || '';
+    document.getElementById('help-body-edit').value = body;
+    updateHelpPreview();
+  }
+  function updateHelpPreview() {
+    const role = document.getElementById('help-role').value || 'sme';
+    document.getElementById('help-preview').innerHTML =
+      window.renderHelpBody(role, document.getElementById('help-body-edit').value);
+  }
+  function renderHelpTab() {
+    loadHelpForRole(document.getElementById('help-role').value || 'sme');
+  }
+  window.renderHelpTab = renderHelpTab;
+  document.getElementById('help-role').addEventListener('change', (e) => loadHelpForRole(e.target.value));
+  document.getElementById('help-body-edit').addEventListener('input', updateHelpPreview);
+
   function renderNoticeTeams(selected) {
     const sel = selected || [];
     document.getElementById('notice-teams-box').innerHTML =
@@ -313,6 +334,20 @@
       UI.hideLoading();
       if (ok) { UI.toast('저장되었습니다.', 'success'); UI.modal('notice-modal', false); renderNotices(); }
       else UI.toast('저장 실패', 'error');
+    }
+    if (act === 'help-default') {
+      const role = document.getElementById('help-role').value || 'sme';
+      document.getElementById('help-body-edit').value = (window.DEFAULT_HELP && window.DEFAULT_HELP[role]) || '';
+      updateHelpPreview();
+    }
+    if (act === 'help-save') {
+      const role = document.getElementById('help-role').value || 'sme';
+      const body = document.getElementById('help-body-edit').value.trim();
+      if (!body) { UI.toast('내용을 입력해주세요.', 'warning'); return; }
+      UI.showLoading('저장 중...');
+      const ok = await API.saveHelpText(role, body);
+      UI.hideLoading();
+      UI.toast(ok ? '저장되었습니다.' : '저장 실패', ok ? 'success' : 'error');
     }
   });
 

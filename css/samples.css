@@ -1,0 +1,8 @@
+.sp-filters { display:flex; gap:8px; flex-wrap:wrap; margin:12px 0; }
+.sp-filters .sp-kw { flex:1 1 220px; min-width:180px; }
+.sp-filters .form-select { flex:0 0 auto; min-width:130px; }
+.sp-badges { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+.grade-badge { background:#eef2ff; color:#3730a3; border-radius:6px; padding:2px 8px; font-size:12px; font-weight:600; }
+.qual-badge { background:#f1f5f9; color:#334155; border-radius:6px; padding:2px 8px; font-size:12px; }
+.comp-tag { background:#ecfdf5; color:#047857; border-radius:6px; padding:2px 8px; font-size:12px; }
+.cat-tag { color:#64748b; font-size:12px; }

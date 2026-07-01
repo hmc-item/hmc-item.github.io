@@ -1,0 +1,23 @@
+<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>코멘트 | 문항개발 워크샵</title>
+<link rel="stylesheet" href="css/common.css"><link rel="stylesheet" href="css/items.css">
+<link rel="stylesheet" href="css/review.css"></head>
+<body><nav id="navbar"></nav><div class="page-wrapper">
+  <div class="review-header"><h1 class="page-title">문항 코멘트</h1>
+    <p class="page-desc">역량을 필터링하여 담당 문항을 검토하고 코멘트를 남기세요</p></div>
+  <div class="review-filters">
+    <select id="rf-comp" class="form-control form-select"><option value="">역량 전체</option></select>
+    <select id="rf-team" class="form-control form-select"><option value="">조 전체</option></select>
+    <select id="rf-type" class="form-control form-select"><option value="">유형 전체</option>
+      <option value="mcq">객관식</option><option value="essay">서술형</option></select>
+    <select id="rf-diff" class="form-control form-select"><option value="">난이도 전체</option>
+      <option value="1">1</option><option value="2">2</option><option value="3">3</option></select>
+    <label class="rf-check"><input type="checkbox" id="rf-unres"> 미해결 코멘트만</label>
+  </div>
+  <div class="item-list" id="review-list"><div class="empty-state">역량/조를 선택하세요.</div></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script><script src="js/core.js"></script>
+<script src="js/session.js"></script><script src="js/api.js"></script><script src="js/review.js"></script>
+</body></html>

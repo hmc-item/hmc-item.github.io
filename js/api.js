@@ -146,11 +146,65 @@ const API = (() => {
     return true;
   }
 
+  // ===== Comments =====
+  async function getComments(p) {
+    p = p || {}; let q = DB.from('comments').select('*');
+    if (p.item_id) q = q.eq('item_id', p.item_id);
+    if (p.comp_id) q = q.eq('comp_id', p.comp_id);
+    const { data, error } = await q;
+    if (error) { console.error('[getComments]', error); return []; }
+    return (data || []).sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
+  }
+  async function getCommentsByItems(ids) {
+    if (!ids || !ids.length) return {};
+    const { data, error } = await DB.from('comments').select('*').in('item_id', ids);
+    if (error) { console.error('[getCommentsByItems]', error); return {}; }
+    const m = {}; (data || []).forEach(c => { (m[c.item_id] = m[c.item_id] || []).push(c); });
+    Object.keys(m).forEach(k => m[k].sort((a, b) => String(a.created_at).localeCompare(String(b.created_at))));
+    return m;
+  }
+  async function getUnresolvedCounts() {
+    const { data, error } = await DB.from('comments').select('comp_id,is_resolved').eq('is_resolved', false);
+    if (error) { console.error('[getUnresolvedCounts]', error); return {}; }
+    const m = {}; (data || []).forEach(c => { m[c.comp_id] = (m[c.comp_id] || 0) + 1; });
+    return m;
+  }
+  async function addComment(b) {
+    if (!b.item_id || !b.content) return null;
+    const id = generateId('cm');
+    const ok = await saveRow('comments', null, null, {
+      comment_id: id, item_id: b.item_id, comp_id: b.comp_id || '',
+      author_role: b.author_role, content: b.content, is_resolved: false
+    });
+    return ok ? { comment_id: id } : null;
+  }
+  async function _reinsertComment(commentId, patch) {
+    const { data } = await DB.from('comments').select('*').eq('comment_id', commentId);
+    if (!data || !data.length) return false;
+    const cur = data[0];
+    return saveRow('comments', 'comment_id', commentId, {
+      comment_id: commentId, item_id: cur.item_id, comp_id: cur.comp_id,
+      author_role: cur.author_role,
+      content: patch.content !== undefined ? patch.content : cur.content,
+      is_resolved: patch.is_resolved !== undefined ? patch.is_resolved : cur.is_resolved,
+      created_at: cur.created_at
+    });
+  }
+  async function updateComment(id, content) { return _reinsertComment(id, { content }); }
+  async function setCommentResolved(id, v) { return _reinsertComment(id, { is_resolved: v }); }
+  async function deleteComment(id) {
+    const { error } = await DB.from('comments').delete().eq('comment_id', id);
+    if (error) { console.error('[deleteComment]', error); return false; }
+    return true;
+  }
+
   return {
     getTeams, addTeam, updateTeam, deleteTeam,
     getCompetencies, addCompetency, updateCompetency, deleteCompetency,
     getItems, getItemCounts, saveItem, deleteItem,
-    getImages, getImagesByItems, uploadImage, deleteImage, publicUrl
+    getImages, getImagesByItems, uploadImage, deleteImage, publicUrl,
+    getComments, getCommentsByItems, getUnresolvedCounts,
+    addComment, updateComment, setCommentResolved, deleteComment
   };
 })();
 window.API = API;

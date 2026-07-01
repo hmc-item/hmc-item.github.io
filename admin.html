@@ -11,6 +11,7 @@
     <button class="admin-tab" data-tab="comps">📋 역량 관리</button>
     <button class="admin-tab" data-tab="dash">📊 진척 대시보드</button>
     <button class="admin-tab" data-tab="review">💬 코멘트</button>
+    <button class="admin-tab" data-tab="notices">📢 공지 관리</button>
   </div>
 
   <div class="tab-content active" id="tab-teams"><div class="card">
@@ -44,6 +45,14 @@
     <div class="card"><div class="card-body" style="padding:0;">
       <iframe id="review-frame" style="width:100%;height:75vh;border:none;border-radius:12px;"></iframe>
     </div></div>
+  </div>
+  <div class="tab-content" id="tab-notices">
+    <div class="card"><div class="card-header"><span class="card-title">공지 목록</span>
+      <button class="btn btn-primary btn-sm" data-act="add-notice">+ 공지 추가</button></div>
+      <div class="card-body"><div class="table-wrap"><table class="admin-table">
+        <thead><tr><th>대상</th><th>제목</th><th>고정</th><th>등록일</th><th>관리</th></tr></thead>
+        <tbody id="notices-tbody"><tr><td colspan="5" class="table-empty">탭을 선택하면 불러옵니다.</td></tr></tbody>
+      </table></div></div></div>
   </div>
 </div>
 
@@ -87,6 +96,30 @@
   </div>
   <div class="modal-footer"><button class="btn btn-secondary" data-act="comp-close">취소</button>
     <button class="btn btn-primary" data-act="comp-save">저장</button></div>
+</div></div>
+
+<!-- 공지 모달 -->
+<div id="notice-modal" class="modal-backdrop" style="display:none;"><div class="modal modal-lg">
+  <div class="modal-header"><h2 class="modal-title" id="notice-modal-title">공지 추가</h2>
+    <button class="modal-close" data-act="notice-close">✕</button></div>
+  <div class="modal-body"><input type="hidden" id="notice-modal-id">
+    <div class="form-group"><label class="form-label">제목 <span class="required">*</span></label>
+      <input type="text" id="notice-modal-title-in" class="form-control" placeholder="예: 제출 마감 안내"></div>
+    <div class="form-group"><label class="form-label">내용 <span class="required">*</span></label>
+      <textarea id="notice-modal-content" class="form-control" rows="4"></textarea></div>
+    <div class="form-group"><label class="form-label">대상 <span class="required">*</span></label>
+      <div class="notice-scope">
+        <label><input type="radio" name="notice-scope" value="common" checked> 공통(전체)</label>
+        <label><input type="radio" name="notice-scope" value="teams"> 특정 조</label>
+      </div></div>
+    <div class="form-group" id="notice-teams-group" style="display:none;">
+      <label class="form-label">대상 조 선택 <span class="required">*</span></label>
+      <div id="notice-teams-box" class="notice-teams-box"></div></div>
+    <div class="form-group"><label class="notice-pin-label">
+      <input type="checkbox" id="notice-modal-pin"> 상단 고정(📌)</label></div>
+  </div>
+  <div class="modal-footer"><button class="btn btn-secondary" data-act="notice-close">취소</button>
+    <button class="btn btn-primary" data-act="notice-save">저장</button></div>
 </div></div>
 
 <script src="js/lib/supabase.js"></script>

@@ -274,6 +274,7 @@
         UI.toast('객관식은 보기 4개를 모두 입력해주세요.', 'warning'); return;
       }
       if (type === 'essay' && !body.model_answer) { UI.toast('모범답안을 입력해주세요.', 'warning'); return; }
+      if (!body.explanation) { UI.toast('해설을 입력해주세요.', 'warning'); return; }
       UI.showLoading('저장 중...'); const r = await API.saveItem(body); UI.hideLoading();
       if (!r) { UI.toast('저장 실패', 'error'); return; }
       UI.toast('저장되었습니다.', 'success'); UI.modal('item-modal', false); reload();

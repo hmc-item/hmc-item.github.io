@@ -58,6 +58,7 @@ const XlsxTool = (() => {
       const diff = Number(r.난이도);
       if (![1,2,3].includes(diff)) errs.push('난이도 1/2/3');
       if (!r.문항) errs.push('문항 필수');
+      if (!r.해설) errs.push('해설 필수');
       if (type === 'mcq') {
         if (!r.보기1 || !r.보기2 || !r.보기3 || !r.보기4) errs.push('보기1~4 필수');
         if (![1,2,3,4].includes(Number(r.정답))) errs.push('정답 1~4');

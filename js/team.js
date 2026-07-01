@@ -55,7 +55,7 @@
     box.style.display = 'block';
     box.innerHTML = '<div class="notice-head">📢 공지사항</div>' +
       '<div class="notice-list">' + list.map(n =>
-        '<div class="notice-card' + (n.is_pinned ? '' : ' collapsed') + '">' +
+        '<div class="notice-card' + (n.is_pinned ? ' pinned' : ' collapsed') + '">' +
           '<div class="notice-top">' +
             (n.is_pinned ? '<span class="notice-pin">📌</span>' : '') +
             '<span class="notice-badge ' + (n.is_common ? 'common' : 'team') + '">' +

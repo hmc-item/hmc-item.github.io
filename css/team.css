@@ -27,8 +27,9 @@
 .notice-box { margin-bottom: 24px; }
 .notice-head { font-size: 15px; font-weight: 700; color: #1a1a1a; margin-bottom: 10px; }
 .notice-list { display: flex; flex-direction: column; gap: 10px; }
-.notice-card { background: #fff8e6; border: 1px solid #f0d98a; border-left: 4px solid #e6a817;
+.notice-card { background: #fff; border: 1px solid #e2e2e2; border-left: 4px solid #cfcfcf;
   border-radius: 10px; padding: 12px 14px; }
+.notice-card.pinned { background: #fff8e6; border-color: #f0d98a; border-left-color: #e6a817; }
 .notice-top { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; cursor: pointer; }
 .notice-toggle { margin-left: auto; font-size: 12px; color: #999; transition: transform 0.15s; }
 .notice-card.collapsed .notice-top { margin-bottom: 0; }

@@ -12,6 +12,7 @@
     <button class="admin-tab" data-tab="dash">📊 진척 대시보드</button>
     <button class="admin-tab" data-tab="review">💬 코멘트</button>
     <button class="admin-tab" data-tab="notices">📢 공지 관리</button>
+    <button class="admin-tab" data-tab="help">❓ 사용법 관리</button>
   </div>
 
   <div class="tab-content active" id="tab-teams"><div class="card">
@@ -53,6 +54,26 @@
         <thead><tr><th>대상</th><th>제목</th><th>고정</th><th>등록일</th><th>관리</th></tr></thead>
         <tbody id="notices-tbody"><tr><td colspan="5" class="table-empty">탭을 선택하면 불러옵니다.</td></tr></tbody>
       </table></div></div></div>
+  </div>
+
+  <div class="tab-content" id="tab-help">
+    <div class="card"><div class="card-header"><span class="card-title">역할별 사용법 편집</span>
+      <select id="help-role" class="form-control form-select" style="max-width:180px;">
+        <option value="sme">SME</option><option value="coach">교수</option><option value="admin">관리자</option>
+      </select></div>
+      <div class="card-body">
+        <p class="help-edit-tip">한 줄에 한 단계씩 입력하세요. <b>제목 — 설명</b> 형식으로 쓰면 제목이 굵게 표시됩니다.</p>
+        <div class="help-edit-grid">
+          <div><label class="form-label">내용(줄 = 단계)</label>
+            <textarea id="help-body-edit" class="form-control" rows="14"></textarea></div>
+          <div><label class="form-label">미리보기</label>
+            <div id="help-preview" class="help-preview-box"></div></div>
+        </div>
+        <div class="help-edit-actions">
+          <button class="btn btn-secondary btn-sm" data-act="help-default">기본값 불러오기</button>
+          <button class="btn btn-primary btn-sm" data-act="help-save">저장</button>
+        </div>
+      </div></div>
   </div>
 </div>
 

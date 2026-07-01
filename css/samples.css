@@ -6,3 +6,9 @@
 .qual-badge { background:#f1f5f9; color:#334155; border-radius:6px; padding:2px 8px; font-size:12px; }
 .comp-tag { background:#ecfdf5; color:#047857; border-radius:6px; padding:2px 8px; font-size:12px; }
 .cat-tag { color:#64748b; font-size:12px; }
+
+/* 다운로드 버튼/헤더 액션 정렬 */
+.item-card-head { display:flex; align-items:flex-start; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+.sp-head-actions { display:flex; gap:6px; flex-shrink:0; }
+.sp-dl-one-btn { white-space:nowrap; }
+.sp-filters #sp-dl-all-btn { white-space:nowrap; margin-left:auto; }

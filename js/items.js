@@ -75,21 +75,65 @@
     comp = comps.find(c => c.comp_id === compId) || null;
     ctx.comp = comp;
     items = await API.getItems({ comp_id: compId });
+    const imgMap = await API.getImagesByItems(items.map(i => i.item_id));
+    window._imgMap = imgMap;
     UI.hideLoading();
     render();
   }
   window.itemsReload = reload;
   window.itemsGetAll = () => items;
 
+  // ===== 이미지: 리스트 표시 =====
+  window.renderItemImages = function () {
+    const map = window._imgMap || {};
+    document.querySelectorAll('.item-images-slot').forEach(slot => {
+      const list = map[slot.dataset.id] || [];
+      slot.innerHTML = list.length ? '<div class="img-attach-list">' + list.map(im =>
+        '<span class="img-chip">📎 ' + escHtml(im.file_name) + ' (' + escHtml(CONST.AREA_LABEL[im.area] || im.area) + ')' +
+        ' <a href="' + escHtml(API.publicUrl(im.file_path)) + '" download target="_blank" rel="noopener">⬇️</a></span>'
+      ).join('') + '</div>' : '';
+    });
+  };
+
+  // ===== 이미지: 모달 첨부/삭제 =====
+  let modalImgItemId = null;
+  window.renderModalImages = async function (itemId) {
+    modalImgItemId = itemId;
+    const slot = document.getElementById('im-images-slot');
+    if (!itemId) {
+      slot.innerHTML = '<div class="img-note">💡 이미지는 <b>문항을 저장한 뒤</b> 수정 화면에서 첨부할 수 있습니다.</div>';
+      return;
+    }
+    const imgs = await API.getImages(itemId);
+    // 유형별 첨부 영역: 객관식=모범답안 제외 / 서술형=보기1~4 제외
+    const isMcq = document.getElementById('im-type').value === 'mcq';
+    const areas = CONST.AREAS.filter(a => isMcq ? a !== 'model_answer' : !/^option[1-4]$/.test(a));
+    slot.innerHTML = '<div class="img-attach-box"><div class="img-attach-head">📎 이미지 첨부</div>' +
+      '<div class="img-attach-row">' +
+        '<select id="img-area" class="form-control form-select">' +
+          areas.map(a => '<option value="' + a + '">' + CONST.AREA_LABEL[a] + '</option>').join('') + '</select>' +
+        '<input type="file" id="img-file" accept="image/*">' +
+        '<button class="btn btn-secondary btn-sm" data-act="img-upload">첨부</button>' +
+      '</div>' +
+      '<div class="img-attach-list">' + imgs.map(im =>
+        '<span class="img-chip">📎 ' + escHtml(im.file_name) + ' (' + escHtml(CONST.AREA_LABEL[im.area]) + ')' +
+        ' <button class="img-x" data-act="img-del" data-id="' + escHtml(im.image_id) + '">✕</button></span>'
+      ).join('') + '</div></div>';
+    window._modalImgs = imgs;
+  };
+
   // 유형 토글
   function applyTypeToggle() {
     const isMcq = document.getElementById('im-type').value === 'mcq';
     document.getElementById('im-mcq').style.display = isMcq ? 'block' : 'none';
     document.getElementById('im-essay').style.display = isMcq ? 'none' : 'block';
+    // 유형 변경 시 이미지 첨부 영역 드롭다운도 갱신(수정 모드에서만 첨부 UI 존재)
+    if (modalImgItemId && window.renderModalImages) window.renderModalImages(modalImgItemId);
   }
   document.getElementById('im-type').addEventListener('change', applyTypeToggle);
 
   function openItemModal(it) {
+    modalImgItemId = null; // 열 때 stale 첨부영역 렌더 방지(아래 renderModalImages가 정확히 다시 그림)
     document.getElementById('item-modal-id').value = it ? it.item_id : '';
     document.getElementById('im-type').value = it ? it.item_type : 'mcq';
     document.getElementById('im-diff').value = it ? String(it.difficulty) : '1';
@@ -141,6 +185,23 @@
       UI.showLoading('저장 중...'); const r = await API.saveItem(body); UI.hideLoading();
       if (!r) { UI.toast('저장 실패', 'error'); return; }
       UI.toast('저장되었습니다.', 'success'); UI.modal('item-modal', false); reload();
+    }
+    if (act === 'img-upload') {
+      const f = document.getElementById('img-file').files[0];
+      if (!f) { UI.toast('파일을 선택해주세요.', 'warning'); return; }
+      const area = document.getElementById('img-area').value;
+      UI.showLoading('이미지 업로드 중...');
+      const r = await API.uploadImage(modalImgItemId, ctx.compId, area, f);
+      UI.hideLoading();
+      if (r) { UI.toast('첨부되었습니다.', 'success'); window.renderModalImages(modalImgItemId); reload(); }
+      else UI.toast('업로드 실패', 'error');
+    }
+    if (act === 'img-del') {
+      const im = (window._modalImgs || []).find(x => x.image_id === b.dataset.id);
+      if (!im || !(await UI.confirm('이 이미지를 삭제하시겠습니까?'))) return;
+      UI.showLoading('삭제 중...'); const ok = await API.deleteImage(im); UI.hideLoading();
+      if (ok) { UI.toast('삭제되었습니다.', 'success'); window.renderModalImages(modalImgItemId); reload(); }
+      else UI.toast('삭제 실패', 'error');
     }
   });
 

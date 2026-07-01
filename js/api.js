@@ -111,10 +111,46 @@ const API = (() => {
     return true;
   }
 
+  // ===== Images =====
+  function publicUrl(path) {
+    const { data } = DB.storage.from(CONST.BUCKET).getPublicUrl(path);
+    return data ? data.publicUrl : '';
+  }
+  async function getImages(itemId) {
+    const { data, error } = await DB.from('item_images').select('*').eq('item_id', itemId);
+    if (error) { console.error('[getImages]', error); return []; }
+    return data || [];
+  }
+  async function getImagesByItems(ids) {
+    if (!ids || !ids.length) return {};
+    const { data, error } = await DB.from('item_images').select('*').in('item_id', ids);
+    if (error) { console.error('[getImagesByItems]', error); return {}; }
+    const m = {}; (data || []).forEach(r => { (m[r.item_id] = m[r.item_id] || []).push(r); });
+    return m;
+  }
+  async function uploadImage(itemId, compId, area, file) {
+    const safe = file.name.replace(/[^\w.\-가-힣]/g, '_');
+    const path = compId + '/' + itemId + '/' + Date.now() + '_' + safe;
+    const up = await DB.storage.from(CONST.BUCKET).upload(path, file, { upsert: false });
+    if (up.error) { console.error('[uploadImage]', up.error); return null; }
+    const id = generateId('img');
+    const ok = await saveRow('item_images', null, null,
+      { image_id: id, item_id: itemId, area, file_path: path, file_name: file.name });
+    if (!ok) return null;
+    return { image_id: id, item_id: itemId, area, file_path: path, file_name: file.name };
+  }
+  async function deleteImage(img) {
+    await DB.storage.from(CONST.BUCKET).remove([img.file_path]);
+    const { error } = await DB.from('item_images').delete().eq('image_id', img.image_id);
+    if (error) { console.error('[deleteImage]', error); return false; }
+    return true;
+  }
+
   return {
     getTeams, addTeam, updateTeam, deleteTeam,
     getCompetencies, addCompetency, updateCompetency, deleteCompetency,
-    getItems, getItemCounts, saveItem, deleteItem
+    getItems, getItemCounts, saveItem, deleteItem,
+    getImages, getImagesByItems, uploadImage, deleteImage, publicUrl
   };
 })();
 window.API = API;

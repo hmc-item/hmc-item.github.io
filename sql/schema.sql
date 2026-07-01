@@ -69,6 +69,15 @@ alter table items        disable row level security;
 alter table item_images  disable row level security;
 alter table comments     disable row level security;
 
+-- Storage(item-images 버킷) 정책: 공개 키(anon)로 업로드/조회/삭제 허용
+-- (버킷은 대시보드 Storage에서 먼저 생성. Public 체크 시 read는 자동이나 insert/delete는 정책 필요)
+drop policy if exists item_images_public_read   on storage.objects;
+drop policy if exists item_images_public_insert on storage.objects;
+drop policy if exists item_images_public_delete on storage.objects;
+create policy item_images_public_read   on storage.objects for select using (bucket_id = 'item-images');
+create policy item_images_public_insert on storage.objects for insert with check (bucket_id = 'item-images');
+create policy item_images_public_delete on storage.objects for delete using (bucket_id = 'item-images');
+
 -- 시드 예시(선택): 조 1개 + 역량 1개
 -- insert into teams(id,team_id,team_name) values('t_seed','t_seed','기계보전');
 -- insert into competencies(id,comp_id,comp_name,team_id,target_count,order_index)

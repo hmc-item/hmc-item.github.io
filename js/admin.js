@@ -126,20 +126,20 @@
       '<div class="dash-foot"><span>' + t.cnt + '/' + t.tgt + '</span></div></div>').join('')
       : '<p class="table-empty">조가 없습니다.</p>';
 
-    // 전체 요약: 객/서 · 난이도
+    // 전체 요약: 객/서 · 급수
     const totalN = allItems.length;
     const mcqTot = allItems.filter(i => i.item_type === 'mcq').length;
     const essayTot = totalN - mcqTot;
-    const dCount = (d) => allItems.filter(i => Number(i.difficulty) === d).length;
+    const gCount = (g) => allItems.filter(i => (i.grade || '') === g).length;
     const pct = (n) => totalN ? Math.round(n / totalN * 100) : 0;
     document.getElementById('dash-summary').innerHTML =
       '<div class="dash-stat"><div class="dash-stat-h">유형 총 현황</div>' +
         '<div class="dash-stat-row"><span>객관식 <b>' + mcqTot + '</b> (' + pct(mcqTot) + '%)</span>' +
         '<span>서술형 <b>' + essayTot + '</b> (' + pct(essayTot) + '%)</span></div></div>' +
-      '<div class="dash-stat"><div class="dash-stat-h">난이도 총 현황</div>' +
-        '<div class="dash-stat-row"><span>난이도1 <b>' + dCount(1) + '</b> (' + pct(dCount(1)) + '%)</span>' +
-        '<span>난이도2 <b>' + dCount(2) + '</b> (' + pct(dCount(2)) + '%)</span>' +
-        '<span>난이도3 <b>' + dCount(3) + '</b> (' + pct(dCount(3)) + '%)</span></div>' +
+      '<div class="dash-stat"><div class="dash-stat-h">급수 총 현황</div>' +
+        '<div class="dash-stat-row">' +
+        CONST.ITEM_GRADES.map(g => '<span>' + escHtml(g) + ' <b>' + gCount(g) + '</b> (' + pct(gCount(g)) + '%)</span>').join('') +
+        '</div>' +
         '<div class="dash-stat-sub">전체 ' + totalN + '문항</div></div>' +
       '<div class="dash-stat"><div class="dash-stat-h">샘플 문항 뱅크</div>' +
         '<div class="dash-stat-row"><span>등록 <b>' + sampleCnt + '</b> 개</span>' +
@@ -244,8 +244,8 @@
     const cs = window._dashComps || [], ts = window._dashTeams || [];
     const compName = (id) => { const c = cs.find(x => x.comp_id === id); return c ? c.comp_name : id; };
     const teamName = (id) => { const t = ts.find(x => x.team_id === id); return t ? t.team_name : id; };
-    const head = ['역량','담당조','유형','난이도','문항','보기1','보기2','보기3','보기4','정답','모범답안','해설'];
-    const rows = items.map(i => [compName(i.comp_id), teamName(i.team_id), CONST.TYPES[i.item_type], i.difficulty,
+    const head = ['역량','담당조','유형','급수','문항','보기1','보기2','보기3','보기4','정답','모범답안','해설'];
+    const rows = items.map(i => [compName(i.comp_id), teamName(i.team_id), CONST.TYPES[i.item_type], i.grade,
       i.question, i.option1||'', i.option2||'', i.option3||'', i.option4||'',
       i.answer||'', i.model_answer||'', i.explanation||'']);
     const esc = (v) => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';

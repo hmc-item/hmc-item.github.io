@@ -26,8 +26,8 @@
         <select id="filter-type" class="form-control form-select ab-filter">
           <option value="">유형 전체</option><option value="mcq">객관식</option><option value="essay">서술형</option></select>
         <select id="filter-diff" class="form-control form-select ab-filter">
-          <option value="">난이도 전체</option><option value="1">난이도 1</option>
-          <option value="2">난이도 2</option><option value="3">난이도 3</option></select>
+          <option value="">급수 전체</option><option value="3급">3급</option>
+          <option value="2급">2급</option><option value="1급">1급</option><option value="1급 심화">1급 심화</option></select>
       </div>
       <div class="item-list" id="item-list"><div class="empty-state">불러오는 중...</div></div>
     </div>
@@ -43,9 +43,10 @@
       <div class="form-group"><label class="form-label">문항유형 <span class="required">*</span></label>
         <select id="im-type" class="form-control form-select">
           <option value="mcq">객관식</option><option value="essay">서술형</option></select></div>
-      <div class="form-group"><label class="form-label">난이도 <span class="required">*</span></label>
+      <div class="form-group"><label class="form-label">급수 <span class="required">*</span></label>
         <select id="im-diff" class="form-control form-select">
-          <option value="1">1</option><option value="2">2</option><option value="3">3</option></select></div>
+          <option value="3급">3급</option><option value="2급">2급</option>
+          <option value="1급">1급</option><option value="1급 심화">1급 심화</option></select></div>
     </div>
     <div class="form-group"><label class="form-label">문항(질문) <span class="required">*</span></label>
       <textarea id="im-question" class="form-control" rows="3"></textarea></div>
@@ -79,7 +80,7 @@
   <div class="modal-header"><h2 class="modal-title">🧩 샘플에서 가져오기</h2>
     <button class="modal-close" data-act="borrow-close">✕</button></div>
   <div class="modal-body">
-    <div class="upload-guide">샘플을 고르면 작성 폼에 내용이 채워집니다. 난이도는 자격등급에 따라 자동 설정되며, 저장 전 자유롭게 수정할 수 있습니다. 저장하기 전까지는 아무것도 반영되지 않습니다.</div>
+    <div class="upload-guide">샘플을 고르면 작성 폼에 내용이 채워집니다. 급수는 자격등급에 따라 자동 설정되며, 저장 전 자유롭게 수정할 수 있습니다. 저장하기 전까지는 아무것도 반영되지 않습니다.</div>
     <div class="sp-filters">
       <input id="bw-f-kw" class="form-control sp-kw" placeholder="🔍 문항/자격명 검색">
       <select id="bw-f-type" class="form-control form-select">

@@ -22,7 +22,7 @@
   function filtered() {
     const ft = document.getElementById('filter-type').value;
     const fd = document.getElementById('filter-diff').value;
-    return items.filter(i => (!ft || i.item_type === ft) && (!fd || String(i.difficulty) === fd));
+    return items.filter(i => (!ft || i.item_type === ft) && (!fd || String(i.grade || '') === fd));
   }
 
   function itemCard(it, idx) {
@@ -45,7 +45,7 @@
       '<div class="item-card-head"><div class="item-badges">' +
         '<span class="num">' + (idx + 1) + '</span>' +
         '<span class="type-badge type-' + it.item_type + '">' + typeLabel + '</span>' +
-        '<span class="diff-badge diff-' + it.difficulty + '">난이도 ' + it.difficulty + '</span>' +
+        '<span class="diff-badge">' + escHtml(it.grade || '-') + '</span>' +
       '</div>' + actions + '</div>' +
       '<div class="item-q">' + escHtml(it.question) + '</div>' + body + exp +
       '<div class="item-images-slot" data-id="' + escHtml(it.item_id) + '"></div>' +   // Task 10
@@ -259,7 +259,7 @@
     // 폼을 신규(빈 item_id)로 열되 내용 채움
     openItemModal(null);
     document.getElementById('im-type').value = sp.item_type;
-    document.getElementById('im-diff').value = String(CONST.GRADE_TO_DIFFICULTY[sp.qual_grade] || 1);
+    document.getElementById('im-diff').value = CONST.GRADE_TO_ITEMGRADE[sp.qual_grade] || '3급';
     document.getElementById('im-question').value = sp.question || '';
     document.getElementById('im-o1').value = sp.option1 || '';
     document.getElementById('im-o2').value = sp.option2 || '';
@@ -282,7 +282,7 @@
     const bnote = document.getElementById('im-borrow-note'); if (bnote) bnote.innerHTML = '';
     document.getElementById('item-modal-id').value = it ? it.item_id : '';
     document.getElementById('im-type').value = it ? it.item_type : 'mcq';
-    document.getElementById('im-diff').value = it ? String(it.difficulty) : '1';
+    document.getElementById('im-diff').value = it && it.grade ? it.grade : '3급';
     document.getElementById('im-question').value = it ? it.question : '';
     document.getElementById('im-o1').value = it ? (it.option1 || '') : '';
     document.getElementById('im-o2').value = it ? (it.option2 || '') : '';
@@ -305,13 +305,13 @@
       '<tr class="' + (r.ok ? '' : 'row-err') + '">' +
       '<td>' + (i + 1) + '</td>' +
       '<td>' + escHtml(r.raw.문항유형) + '</td>' +
-      '<td>' + escHtml(r.raw.난이도) + '</td>' +
+      '<td>' + escHtml(r.raw.급수) + '</td>' +
       '<td class="cell-q">' + escHtml(r.raw.문항) + '</td>' +
       '<td>' + (r.ok ? '✅' : '❌ ' + escHtml(r.error)) + '</td></tr>').join('');
     document.getElementById('upload-preview').innerHTML =
       '<div class="upload-summary">검증: <b>' + okN + '</b>건 저장 가능 / <b class="ng">' + ngN + '</b>건 제외</div>' +
       '<div class="upload-table-wrap"><table class="admin-table"><thead><tr>' +
-      '<th>#</th><th>유형</th><th>난이도</th><th>문항</th><th>검증</th></tr></thead><tbody>' +
+      '<th>#</th><th>유형</th><th>급수</th><th>문항</th><th>검증</th></tr></thead><tbody>' +
       rowsHtml + '</tbody></table></div>';
     document.getElementById('upload-save-btn').disabled = okN === 0;
   }
@@ -383,7 +383,7 @@
       const body = {
         item_id: document.getElementById('item-modal-id').value || undefined,
         comp_id: compId, team_id: (comp ? comp.team_id : s.team_id), item_type: type,
-        difficulty: Number(document.getElementById('im-diff').value),
+        grade: document.getElementById('im-diff').value,
         question: document.getElementById('im-question').value.trim(),
         option1: document.getElementById('im-o1').value.trim(),
         option2: document.getElementById('im-o2').value.trim(),

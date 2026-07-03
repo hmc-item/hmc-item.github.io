@@ -156,9 +156,9 @@
     const rowsHtml = results.map((r, i) =>
       '<tr class="' + (r.ok ? '' : 'row-err') + '">' +
       '<td>' + (i + 1) + '</td>' +
-      '<td>' + escHtml(r.raw.문항유형) + '</td>' +
+      '<td>' + escHtml(r.raw.유형) + '</td>' +
       '<td>' + escHtml(r.raw.자격등급) + '</td>' +
-      '<td class="cell-q">' + escHtml(r.raw.문항) + '</td>' +
+      '<td class="cell-q">' + escHtml(r.raw['문항(발문)']) + '</td>' +
       '<td>' + (r.ok ? '✅' : '❌ ' + escHtml(r.error)) + '</td></tr>').join('');
     document.getElementById('sp-upload-preview').innerHTML =
       '<div class="upload-summary">검증: <b>' + okN + '</b>건 저장 가능 / <b class="ng">' + ngN + '</b>건 제외</div>' +

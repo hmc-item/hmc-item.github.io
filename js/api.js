@@ -83,7 +83,7 @@ const API = (() => {
     const isMcq = b.item_type === 'mcq';
     return {
       item_id: idOverride, comp_id: b.comp_id, team_id: b.team_id,
-      item_type: b.item_type, difficulty: Number(b.difficulty),
+      item_type: b.item_type, grade: b.grade || null, bloom: b.bloom || null,
       question: b.question || '',
       option1: isMcq ? (b.option1 || '') : null,
       option2: isMcq ? (b.option2 || '') : null,

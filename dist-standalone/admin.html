@@ -2734,15 +2734,17 @@ window.API = API;
       '총 <b>' + _impValidated.length + '</b>행 · 유효 <b>' + okN + '</b> · 오류 <b>' + ngN + '</b>' +
       (ngN ? ' <span style="color:var(--danger,#c0392b);">(오류행은 저장에서 제외)</span>' : '');
 
-    // (직무·영역) 그룹화 — 유효행만
+    // (직무·역량명) 그룹화 — 유효행만. 파일에 역량코드가 있으면 프리필 후보로 보관.
     const gmap = {};
     _impValidated.forEach((v, i) => {
       if (!v.ok) return;
       const key = v.data._job + ' ▸ ' + v.data._area;
-      (gmap[key] = gmap[key] || { job: v.data._job, area: v.data._area, rows: [] }).rows.push(i);
+      if (!gmap[key]) gmap[key] = { job: v.data._job, area: v.data._area, rows: [], compId: v.data._compId || '' };
+      gmap[key].rows.push(i);
     });
     _impGroups = Object.keys(gmap).map((k, gi) => ({
-      job: gmap[k].job, area: gmap[k].area, rows: gmap[k].rows, compSelId: 'imp-comp-' + gi
+      job: gmap[k].job, area: gmap[k].area, rows: gmap[k].rows,
+      compId: gmap[k].compId, compSelId: 'imp-comp-' + gi
     }));
 
     const compOpts = '<option value="">— 역량 선택 —</option>' +
@@ -2750,13 +2752,20 @@ window.API = API;
         escHtml(c.comp_name) + ' (' + escHtml(teamName(c.team_id)) + ')</option>').join('');
 
     document.getElementById('imp-map').innerHTML = _impGroups.length ?
-      '<table class="admin-table"><thead><tr><th>원본 (직무 ▸ 영역)</th><th>문항수</th><th>→ item-dev 역량</th></tr></thead><tbody>' +
+      '<table class="admin-table"><thead><tr><th>원본 (직무 ▸ 역량명)</th><th>문항수</th><th>→ item-dev 역량</th></tr></thead><tbody>' +
       _impGroups.map(g =>
-        '<tr><td>' + escHtml(g.job) + ' ▸ ' + escHtml(g.area) + '</td>' +
+        '<tr><td>' + escHtml(g.job) + ' ▸ ' + escHtml(g.area || '(역량명 없음)') + '</td>' +
         '<td class="td-center">' + g.rows.length + '</td>' +
         '<td><select class="form-control form-select" id="' + g.compSelId + '">' + compOpts + '</select></td></tr>'
       ).join('') + '</tbody></table>'
       : '<p class="table-empty">유효한 문항이 없습니다.</p>';
+
+    // 파일에 역량코드가 채워져 있고 해당 comp가 존재하면 드롭다운 자동 선택
+    _impGroups.forEach(g => {
+      if (g.compId && comps.some(c => c.comp_id === g.compId)) {
+        const sel = document.getElementById(g.compSelId); if (sel) sel.value = g.compId;
+      }
+    });
 
     document.getElementById('imp-run').disabled = !_impGroups.length;
   }

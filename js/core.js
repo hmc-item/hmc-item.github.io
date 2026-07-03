@@ -27,6 +27,38 @@ async function saveRow(table, matchCol, matchVal, rowObj) {
   if (insErr) { console.error('[saveRow.insert]', table, insErr); return false; }
   return true;
 }
+// ===== 자동화 원본 정규화 헬퍼 (문항_DB.xlsx 흡수용) =====
+// 발문·보기·해설 끝의 "\n---" 구분자·잉여 공백 제거
+function stripMarkers(s) {
+  s = String(s == null ? '' : s);
+  s = s.replace(/\s*\n\s*-{2,}\s*$/g, '');   // 끝의 --- 라인
+  s = s.replace(/\n{3,}/g, '\n\n');
+  return s.trim();
+}
+// 정답: "②\n\n---" / "2" / "② 유량제어..." → 1~4 (없으면 null)
+const _CIRCLE_NUM = { '①': '1', '②': '2', '③': '3', '④': '4' };
+function normAnswer(s) {
+  s = stripMarkers(s);
+  for (const k in _CIRCLE_NUM) s = s.split(k).join(_CIRCLE_NUM[k]);
+  const m = s.match(/[1-4]/);
+  return m ? Number(m[0]) : null;
+}
+// 유형: "객관식 4지택일\n\n---" → mcq / "주관식 서술"·"서술형" → essay
+function normType(s) {
+  s = String(s || '');
+  if (s.indexOf('객관식') >= 0) return 'mcq';
+  if (s.indexOf('주관식') >= 0 || s.indexOf('서술') >= 0 || s.indexOf('단답') >= 0) return 'essay';
+  return (window.CONST && CONST.TYPE_FROM_LABEL[s.trim()]) || '';
+}
+// 급수: "심화"/"1급 심화" → "1급 심화", "1급"/"2급"/"3급" 매칭
+function normGrade(s) {
+  s = String(s || '').trim();
+  if (s.indexOf('심화') >= 0) return '1급 심화';
+  for (const g of ['1급', '2급', '3급']) if (s.indexOf(g) >= 0) return g;
+  return s;
+}
+window.stripMarkers = stripMarkers; window.normAnswer = normAnswer;
+window.normType = normType; window.normGrade = normGrade;
 window.escHtml = escHtml; window.generateId = generateId; window.saveRow = saveRow; window.safeKey = safeKey;
 
 // ===== UI: 로딩/토스트/모달/확인 =====

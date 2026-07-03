@@ -16,6 +16,7 @@
     if (t.dataset.tab === 'review') window.renderReviewTab && window.renderReviewTab();
     if (t.dataset.tab === 'notices') window.renderNotices && window.renderNotices();
     if (t.dataset.tab === 'help') window.renderHelpTab && window.renderHelpTab();
+    if (t.dataset.tab === 'import') window.renderImportTab && window.renderImportTab();
   });
 
   // ---- 조 관리 ----
@@ -356,6 +357,102 @@
       document.getElementById('notice-teams-group').style.display =
         e.target.value === 'teams' ? 'block' : 'none';
     }
+  });
+
+  // ---- 🔗 자동화 문항 가져오기 ----
+  let _impValidated = [];   // validateAutomationRows 결과
+  let _impGroups = [];      // [{job, area, rows:[idx...], compSelId}]
+
+  function renderImportTab() {
+    document.getElementById('imp-summary').textContent = '문항_DB.xlsx 파일을 선택하세요.';
+    document.getElementById('imp-map').innerHTML = '';
+    document.getElementById('imp-result').innerHTML = '';
+    document.getElementById('imp-run').disabled = true;
+  }
+  window.renderImportTab = renderImportTab;
+
+  async function _impOnFile(file) {
+    if (!window._adminTeams) await loadTeams();
+    const comps = await API.getCompetencies();
+    window._impComps = comps;
+    UI.showLoading('원본 파싱 중...');
+    let rows;
+    try { rows = await XlsxTool.parseAutomationFile(file); }
+    catch (e) { UI.hideLoading(); UI.toast('파일 파싱 실패: ' + e.message, 'error'); return; }
+    _impValidated = XlsxTool.validateAutomationRows(rows);
+    UI.hideLoading();
+
+    const okN = _impValidated.filter(v => v.ok).length;
+    const ngN = _impValidated.length - okN;
+    document.getElementById('imp-summary').innerHTML =
+      '총 <b>' + _impValidated.length + '</b>행 · 유효 <b>' + okN + '</b> · 오류 <b>' + ngN + '</b>' +
+      (ngN ? ' <span style="color:var(--danger,#c0392b);">(오류행은 저장에서 제외)</span>' : '');
+
+    // (직무·영역) 그룹화 — 유효행만
+    const gmap = {};
+    _impValidated.forEach((v, i) => {
+      if (!v.ok) return;
+      const key = v.data._job + ' ▸ ' + v.data._area;
+      (gmap[key] = gmap[key] || { job: v.data._job, area: v.data._area, rows: [] }).rows.push(i);
+    });
+    _impGroups = Object.keys(gmap).map((k, gi) => ({
+      job: gmap[k].job, area: gmap[k].area, rows: gmap[k].rows, compSelId: 'imp-comp-' + gi
+    }));
+
+    const compOpts = '<option value="">— 역량 선택 —</option>' +
+      comps.map(c => '<option value="' + escHtml(c.comp_id) + '">' +
+        escHtml(c.comp_name) + ' (' + escHtml(teamName(c.team_id)) + ')</option>').join('');
+
+    document.getElementById('imp-map').innerHTML = _impGroups.length ?
+      '<table class="admin-table"><thead><tr><th>원본 (직무 ▸ 영역)</th><th>문항수</th><th>→ item-dev 역량</th></tr></thead><tbody>' +
+      _impGroups.map(g =>
+        '<tr><td>' + escHtml(g.job) + ' ▸ ' + escHtml(g.area) + '</td>' +
+        '<td class="td-center">' + g.rows.length + '</td>' +
+        '<td><select class="form-control form-select" id="' + g.compSelId + '">' + compOpts + '</select></td></tr>'
+      ).join('') + '</tbody></table>'
+      : '<p class="table-empty">유효한 문항이 없습니다.</p>';
+
+    document.getElementById('imp-run').disabled = !_impGroups.length;
+  }
+
+  async function _impRun() {
+    const jobs = [];
+    for (const g of _impGroups) {
+      const compId = document.getElementById(g.compSelId).value;
+      if (!compId) { UI.toast('모든 그룹에 역량을 지정하세요: ' + g.job + ' ▸ ' + g.area, 'warning'); return; }
+      const comp = (window._impComps || []).find(c => c.comp_id === compId);
+      if (!comp) { UI.toast('역량을 찾을 수 없습니다.', 'error'); return; }
+      jobs.push({ g, compId, teamId: comp.team_id });
+    }
+    const ok = await UI.confirm('선택한 그룹의 문항을 저장합니다. 계속할까요?');
+    if (!ok) return;
+
+    UI.showLoading('저장 중...');
+    let saved = 0, failed = 0;
+    for (const j of jobs) {
+      for (const idx of j.g.rows) {
+        const d = _impValidated[idx].data;
+        const res = await API.saveItem({
+          comp_id: j.compId, team_id: j.teamId,
+          item_type: d.item_type, grade: d.grade, bloom: d.bloom,
+          question: d.question, option1: d.option1, option2: d.option2,
+          option3: d.option3, option4: d.option4, answer: d.answer,
+          model_answer: d.model_answer, explanation: d.explanation
+        });
+        if (res) saved++; else failed++;
+      }
+    }
+    UI.hideLoading();
+    document.getElementById('imp-result').innerHTML =
+      '<div class="dash-stat"><b>저장 완료</b> — 성공 ' + saved + ' · 실패 ' + failed + '</div>';
+    UI.toast('저장: 성공 ' + saved + ' / 실패 ' + failed, failed ? 'warning' : 'success');
+  }
+
+  document.addEventListener('change', (e) => {
+    if (e.target && e.target.id === 'imp-file' && e.target.files[0]) _impOnFile(e.target.files[0]);
+  });
+  document.addEventListener('click', (e) => {
+    if (e.target && e.target.id === 'imp-run') _impRun();
   });
 
   loadTeams();

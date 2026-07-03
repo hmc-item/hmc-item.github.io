@@ -13,6 +13,7 @@
     <button class="admin-tab" data-tab="review">💬 코멘트</button>
     <button class="admin-tab" data-tab="notices">📢 공지 관리</button>
     <button class="admin-tab" data-tab="help">❓ 사용법 관리</button>
+    <button class="admin-tab" data-tab="import">🔗 자동화 문항 가져오기</button>
   </div>
 
   <div class="tab-content active" id="tab-teams"><div class="card">
@@ -75,6 +76,20 @@
         </div>
       </div></div>
   </div>
+
+  <div class="tab-content" id="tab-import"><div class="card">
+    <div class="card-header"><span class="card-title">🔗 자동화 문항 가져오기</span></div>
+    <div class="card-body">
+      <p class="help-edit-tip">자동화 앱의 <b>문항_DB.xlsx</b>(Q_draft·Q_confirmed 시트)를 올려 개발 문항으로 저장합니다. 그룹별로 item-dev 역량을 지정하세요.</p>
+      <input type="file" id="imp-file" accept=".xlsx,.xls" class="form-control" style="max-width:420px;" />
+      <div id="imp-summary" style="margin:12px 0;color:var(--text-secondary);"></div>
+      <div id="imp-map" class="table-wrap"></div>
+      <div style="margin-top:16px;">
+        <button class="btn btn-primary" id="imp-run" disabled>선택 그룹 저장</button>
+      </div>
+      <div id="imp-result" style="margin-top:16px;"></div>
+    </div>
+  </div></div>
 </div>
 
 <!-- 조 모달 -->

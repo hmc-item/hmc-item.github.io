@@ -36,7 +36,7 @@
       '<div class="item-card-head"><div class="item-badges">' +
         '<span class="num">' + (idx + 1) + '</span>' +
         '<span class="type-badge type-' + it.item_type + '">' + CONST.TYPES[it.item_type] + '</span>' +
-        '<span class="diff-badge diff-' + it.difficulty + '">난이도 ' + it.difficulty + '</span>' +
+        '<span class="diff-badge">' + escHtml(it.grade || '-') + '</span>' +
         '<span class="rev-comp">' + escHtml(compName(it.comp_id)) + '</span>' +
       '</div></div>' +
       '<div class="item-q">' + escHtml(it.question) + '</div>' + body +
@@ -52,7 +52,7 @@
     const unres = document.getElementById('rf-unres').checked;
     let list = items.filter(i =>
       (!fc || i.comp_id === fc) && (!ft || i.team_id === ft) &&
-      (!fy || i.item_type === fy) && (!fd || String(i.difficulty) === fd));
+      (!fy || i.item_type === fy) && (!fd || String(i.grade || '') === fd));
     if (unres) list = list.filter(i => (commentMap[i.item_id] || []).some(c => !c.is_resolved));
     document.getElementById('review-list').innerHTML = list.length
       ? list.map((it, i) => itemCard(it, i)).join('')

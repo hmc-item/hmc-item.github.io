@@ -1,12 +1,12 @@
 const XlsxTool = (() => {
-  const HEADERS = ['순번','문항유형','난이도','문항','보기1','보기2','보기3','보기4','정답','모범답안','해설'];
+  const HEADERS = ['순번','문항유형','급수','문항','보기1','보기2','보기3','보기4','정답','모범답안','해설'];
   const SAMPLE_HEADERS = ['순번','문항유형','자격등급','국가기술자격명','역량ID','카테고리','문항','보기1','보기2','보기3','보기4','정답','모범답안','해설'];
 
   function downloadTemplate(fmt) {
     const sample = [
       HEADERS,
-      ['1','객관식','2','베어링 손상의 주된 원인은?','마모','부식','균열','정렬불량','3','','균열은 피로하중에 의해 발생'],
-      ['2','서술형','3','윤활관리 표준 절차를 서술하시오.','','','','','','1) 점검 2) 주유 3) 기록','채점 시 단계 누락 감점']
+      ['1','객관식','2급','베어링 손상의 주된 원인은?','마모','부식','균열','정렬불량','3','','균열은 피로하중에 의해 발생'],
+      ['2','서술형','1급','윤활관리 표준 절차를 서술하시오.','','','','','','1) 점검 2) 주유 3) 기록','채점 시 단계 누락 감점']
     ];
     const ws = XLSX.utils.aoa_to_sheet(sample);
     if (fmt === 'csv') {
@@ -112,7 +112,7 @@ const XlsxTool = (() => {
       return [
         String(i + 1),
         CONST.TYPES[it.item_type] || '',            // 객관식|서술형 (재업로드 호환 라벨)
-        it.difficulty != null ? String(it.difficulty) : '',
+        it.grade || '',
         it.question || '',
         isMcq ? (it.option1 || '') : '',
         isMcq ? (it.option2 || '') : '',
@@ -146,8 +146,8 @@ const XlsxTool = (() => {
       const type = CONST.TYPE_FROM_LABEL[r.문항유형];
       const errs = [];
       if (!type) errs.push('문항유형은 객관식/서술형');
-      const diff = Number(r.난이도);
-      if (![1,2,3].includes(diff)) errs.push('난이도 1/2/3');
+      const grade = normGrade(r.급수);
+      if (!CONST.ITEM_GRADES.includes(grade)) errs.push('급수는 3급/2급/1급/1급 심화');
       if (!r.문항) errs.push('문항 필수');
       if (!r.해설) errs.push('해설 필수');
       if (type === 'mcq') {
@@ -156,7 +156,7 @@ const XlsxTool = (() => {
       }
       if (type === 'essay' && !r.모범답안) errs.push('모범답안 필수');
       const data = type ? {
-        item_type: type, difficulty: diff, question: r.문항,
+        item_type: type, grade: grade, bloom: '', question: r.문항,
         option1: r.보기1, option2: r.보기2, option3: r.보기3, option4: r.보기4,
         answer: Number(r.정답), model_answer: r.모범답안, explanation: r.해설
       } : null;
@@ -187,6 +187,80 @@ const XlsxTool = (() => {
     });
   }
 
+  // ===== 자동화 원본(문항_DB.xlsx) 흡수 =====
+  const AUTO_SHEETS = ['Q_draft', 'Q_confirmed'];   // Q_archive 제외
+  const AUTO_HEADERS = ['문항ID','직무','급수','영역','Bloom','유형','발문',
+                        '보기①','보기②','보기③','보기④','정답','해설','모범답안'];
+
+  // 지정 시트들을 순회하며 헤더명 기준으로 행을 dict화. 문항ID 기준 중복 제거.
+  function parseAutomationFile(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const wb = XLSX.read(e.target.result, { type: 'array' });
+          const seen = {}; const out = [];
+          const sheetNames = wb.SheetNames.filter(n => AUTO_SHEETS.indexOf(n) >= 0);
+          const targets = sheetNames.length ? sheetNames : [wb.SheetNames[0]]; // 시트명 다르면 첫 시트
+          targets.forEach(sn => {
+            const ws = wb.Sheets[sn];
+            const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false });
+            if (!rows.length) return;
+            const head = rows[0].map(h => String(h).trim());
+            const idx = {}; AUTO_HEADERS.forEach(h => { idx[h] = head.indexOf(h); });
+            for (let r = 1; r < rows.length; r++) {
+              const row = rows[r];
+              if (row.every(c => String(c).trim() === '')) continue;
+              const obj = {};
+              AUTO_HEADERS.forEach(h => { obj[h] = idx[h] >= 0 ? String(row[idx[h]] == null ? '' : row[idx[h]]) : ''; });
+              const key = String(obj['문항ID'] || '').trim();
+              if (key && seen[key]) continue;      // 중복 문항ID 스킵(먼저 읽힌 것 유지)
+              if (key) seen[key] = true;
+              out.push(obj);
+            }
+          });
+          resolve(out);
+        } catch (err) { reject(err); }
+      };
+      reader.onerror = reject;
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  // 원본 행 → 정규화·검증. data에 _job/_area(역량 매핑 키) 포함.
+  function validateAutomationRows(raw) {
+    return raw.map(r => {
+      const type = normType(r['유형']);
+      const grade = normGrade(r['급수']);
+      const errs = [];
+      if (!type) errs.push('유형 판별 불가(객관식/주관식)');
+      if (!CONST.ITEM_GRADES.includes(grade)) errs.push('급수 판별 불가');
+      const question = stripMarkers(r['발문']);
+      const explanation = stripMarkers(r['해설']);
+      if (!question) errs.push('발문 필수');
+      if (!explanation) errs.push('해설 필수');
+      const o1 = stripMarkers(r['보기①']), o2 = stripMarkers(r['보기②']),
+            o3 = stripMarkers(r['보기③']), o4 = stripMarkers(r['보기④']);
+      const ans = normAnswer(r['정답']);
+      if (type === 'mcq') {
+        if (!o1 || !o2 || !o3 || !o4) errs.push('보기①~④ 필수');
+        if (![1,2,3,4].includes(ans)) errs.push('정답 1~4');
+      }
+      const modelAns = stripMarkers(r['모범답안']);
+      if (type === 'essay' && !modelAns) errs.push('모범답안 필수');
+      const data = errs.length === 0 ? {
+        item_type: type, grade: grade, bloom: String(r['Bloom'] || '').trim(),
+        question: question,
+        option1: o1, option2: o2, option3: o3, option4: o4,
+        answer: type === 'mcq' ? ans : null,
+        model_answer: type === 'essay' ? modelAns : '',
+        explanation: explanation,
+        _job: String(r['직무'] || '').trim(), _area: String(r['영역'] || '').trim()
+      } : null;
+      return { ok: errs.length === 0, error: errs.join(', '), data, raw: r };
+    });
+  }
+
   function triggerDownload(blob, name) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = name;
@@ -197,6 +271,7 @@ const XlsxTool = (() => {
   return { downloadTemplate, parseFile, validateRows, HEADERS,
            downloadSampleTemplate, parseSampleFile, validateSampleRows, SAMPLE_HEADERS,
            buildSampleAoa, downloadSampleRows,
-           buildItemAoa, downloadItemRows };
+           buildItemAoa, downloadItemRows,
+           parseAutomationFile, validateAutomationRows };
 })();
 window.XlsxTool = XlsxTool;

@@ -585,7 +585,7 @@ const SUPABASE_URL = 'https://ozykvjuktmfyxdmudooh.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_Ht9q_kAOXQHPDCjTu_7oqQ_64Jnr2C3';
 
 const CONST = {
-  DIFFICULTY: [1, 2, 3],
+  ITEM_GRADES: ['3급', '2급', '1급', '1급 심화'],   // 문항 급수(난이도 대체, 4단계)
   TYPES     : { mcq: '객관식', essay: '서술형' },
   TYPE_FROM_LABEL: { '객관식': 'mcq', '서술형': 'essay' },
   ROLES     : { sme: 'sme', coach: 'coach', admin: 'admin' },
@@ -601,6 +601,7 @@ const CONST = {
   DEFAULT_TARGET: 50,
   GRADES    : ['기능사', '산업기사', '기사'],
   GRADE_TO_DIFFICULTY: { '기능사': 1, '산업기사': 2, '기사': 3 },
+  GRADE_TO_ITEMGRADE: { '기능사': '3급', '산업기사': '2급', '기사': '1급' },  // 샘플 자격등급→문항 급수 기본값(샘플 차용 프리필용)
   DEFAULT_QUAL_NAME: '현대엔지비 직접개발'
 };
 window.CONST = CONST;
@@ -633,6 +634,38 @@ async function saveRow(table, matchCol, matchVal, rowObj) {
   if (insErr) { console.error('[saveRow.insert]', table, insErr); return false; }
   return true;
 }
+// ===== 자동화 원본 정규화 헬퍼 (문항_DB.xlsx 흡수용) =====
+// 발문·보기·해설 끝의 "\n---" 구분자·잉여 공백 제거
+function stripMarkers(s) {
+  s = String(s == null ? '' : s);
+  s = s.replace(/\s*\n\s*-{2,}\s*$/g, '');   // 끝의 --- 라인
+  s = s.replace(/\n{3,}/g, '\n\n');
+  return s.trim();
+}
+// 정답: "②\n\n---" / "2" / "② 유량제어..." → 1~4 (없으면 null)
+const _CIRCLE_NUM = { '①': '1', '②': '2', '③': '3', '④': '4' };
+function normAnswer(s) {
+  s = stripMarkers(s);
+  for (const k in _CIRCLE_NUM) s = s.split(k).join(_CIRCLE_NUM[k]);
+  const m = s.match(/[1-4]/);
+  return m ? Number(m[0]) : null;
+}
+// 유형: "객관식 4지택일\n\n---" → mcq / "주관식 서술"·"서술형" → essay
+function normType(s) {
+  s = String(s || '');
+  if (s.indexOf('객관식') >= 0) return 'mcq';
+  if (s.indexOf('주관식') >= 0 || s.indexOf('서술') >= 0 || s.indexOf('단답') >= 0) return 'essay';
+  return (window.CONST && CONST.TYPE_FROM_LABEL[s.trim()]) || '';
+}
+// 급수: "심화"/"1급 심화" → "1급 심화", "1급"/"2급"/"3급" 매칭
+function normGrade(s) {
+  s = String(s || '').trim();
+  if (s.indexOf('심화') >= 0) return '1급 심화';
+  for (const g of ['1급', '2급', '3급']) if (s.indexOf(g) >= 0) return g;
+  return s;
+}
+window.stripMarkers = stripMarkers; window.normAnswer = normAnswer;
+window.normType = normType; window.normGrade = normGrade;
 window.escHtml = escHtml; window.generateId = generateId; window.saveRow = saveRow; window.safeKey = safeKey;
 
 // ===== UI: 로딩/토스트/모달/확인 =====
@@ -708,7 +741,7 @@ window.UI = UI;
       '공지 확인 — 화면 상단 공지사항(공통 + 우리 조)을 확인합니다. 고정 공지를 먼저 봅니다.',
       '역량 선택 — 우리 조에 할당된 역량 카드를 클릭해 문항 개발 화면으로 들어갑니다.',
       '문항 개발(생성형 AI) — A) 샘플 문항 뱅크에서 관련 샘플을 다운로드해 AI로 우리 직무에 맞게 변형·확장  B) 본인 지식·내부 자료를 AI에 전달해 신규 문항 생성. (AI 프롬프트 문구는 워크샵에서 안내)',
-      '문항 등록 — AI 결과를 검토·수정한 뒤 폼 입력 또는 엑셀 일괄 업로드. 난이도(1·2·3)·해설은 모든 문항 필수, 객관식은 보기 4개·정답 필수.',
+      '문항 등록 — AI 결과를 검토·수정한 뒤 폼 입력 또는 엑셀 일괄 업로드. 급수(3급~1급 심화)·해설은 모든 문항 필수, 객관식은 보기 4개·정답 필수.',
       '이미지 첨부 — 필요 시 영역(문항/보기/해설/모범답안)별로 이미지를 첨부·다운로드합니다.',
       '코칭 반영 — 교수·관리자 코멘트를 확인·수정한 뒤 [반영 완료]를 체크합니다.'
     ].join('\n'),
@@ -872,7 +905,7 @@ window.DEFAULT_HELP = Session.DEFAULT_HELP;
     const isMcq = b.item_type === 'mcq';
     return {
       item_id: idOverride, comp_id: b.comp_id, team_id: b.team_id,
-      item_type: b.item_type, difficulty: Number(b.difficulty),
+      item_type: b.item_type, grade: b.grade || null, bloom: b.bloom || null,
       question: b.question || '',
       option1: isMcq ? (b.option1 || '') : null,
       option2: isMcq ? (b.option2 || '') : null,

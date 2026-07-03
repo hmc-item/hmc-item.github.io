@@ -187,10 +187,12 @@ const XlsxTool = (() => {
     });
   }
 
-  // ===== 자동화 원본(문항_DB.xlsx) 흡수 =====
+  // ===== 자동화 문항_DB.xlsx 흡수 (인재육성팀 "최종" 통일양식) =====
   const AUTO_SHEETS = ['Q_draft', 'Q_confirmed'];   // Q_archive 제외
-  const AUTO_HEADERS = ['문항ID','직무','급수','영역','Bloom','유형','발문',
-                        '보기①','보기②','보기③','보기④','정답','해설','모범답안'];
+  const AUTO_HEADERS = ['문항ID','직무','급수','역량코드','역량명','Bloom','유형','문항(발문)',
+                        '보기1','보기2','보기3','보기4','정답','해설','모범답안'];
+  // 보기 앞의 "① "·"② " 등 접두 번호 제거(item-dev는 <ol> 자동 번호라 중복 방지)
+  function stripOptPrefix(s) { return String(s == null ? '' : s).replace(/^\s*[①②③④]\s*[.)]?\s*/, ''); }
 
   // 지정 시트들을 순회하며 헤더명 기준으로 행을 dict화. 문항ID 기준 중복 제거.
   function parseAutomationFile(file) {
@@ -227,7 +229,7 @@ const XlsxTool = (() => {
     });
   }
 
-  // 원본 행 → 정규화·검증. data에 _job/_area(역량 매핑 키) 포함.
+  // 최종양식 행 → 정규화·검증. data에 _job/_area(=역량명, 그룹키)·_compId(역량코드, 있으면 프리필) 포함.
   function validateAutomationRows(raw) {
     return raw.map(r => {
       const type = normType(r['유형']);
@@ -235,15 +237,15 @@ const XlsxTool = (() => {
       const errs = [];
       if (!type) errs.push('유형 판별 불가(객관식/주관식)');
       if (!CONST.ITEM_GRADES.includes(grade)) errs.push('급수 판별 불가');
-      const question = stripMarkers(r['발문']);
+      const question = stripMarkers(r['문항(발문)']);
       const explanation = stripMarkers(r['해설']);
       if (!question) errs.push('발문 필수');
       if (!explanation) errs.push('해설 필수');
-      const o1 = stripMarkers(r['보기①']), o2 = stripMarkers(r['보기②']),
-            o3 = stripMarkers(r['보기③']), o4 = stripMarkers(r['보기④']);
+      const o1 = stripOptPrefix(stripMarkers(r['보기1'])), o2 = stripOptPrefix(stripMarkers(r['보기2'])),
+            o3 = stripOptPrefix(stripMarkers(r['보기3'])), o4 = stripOptPrefix(stripMarkers(r['보기4']));
       const ans = normAnswer(r['정답']);
       if (type === 'mcq') {
-        if (!o1 || !o2 || !o3 || !o4) errs.push('보기①~④ 필수');
+        if (!o1 || !o2 || !o3 || !o4) errs.push('보기1~4 필수');
         if (![1,2,3,4].includes(ans)) errs.push('정답 1~4');
       }
       const modelAns = stripMarkers(r['모범답안']);
@@ -255,7 +257,9 @@ const XlsxTool = (() => {
         answer: type === 'mcq' ? ans : null,
         model_answer: type === 'essay' ? modelAns : '',
         explanation: explanation,
-        _job: String(r['직무'] || '').trim(), _area: String(r['영역'] || '').trim()
+        _job: String(r['직무'] || '').trim(),
+        _area: String(r['역량명'] || '').trim(),
+        _compId: String(r['역량코드'] || '').trim()
       } : null;
       return { ok: errs.length === 0, error: errs.join(', '), data, raw: r };
     });

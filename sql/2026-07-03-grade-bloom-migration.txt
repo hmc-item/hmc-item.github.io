@@ -1,0 +1,43 @@
+========================================================
+ [실행 안내] items 급수(grade)·Bloom 컬럼 마이그레이션
+ 위치: Supabase 대시보드 → SQL Editor → 아래 SQL 붙여넣기 → Run
+========================================================
+
+■ 1단계. 아래 SQL을 실행하세요.
+--------------------------------------------------------
+alter table items add column if not exists grade text;
+alter table items add column if not exists bloom text;
+
+update items set grade = case difficulty
+    when 1 then '3급'
+    when 2 then '2급'
+    when 3 then '1급'
+    else null
+  end
+  where grade is null and difficulty is not null;
+
+alter table items alter column difficulty drop not null;
+--------------------------------------------------------
+→ 기대 결과: "Success. No rows returned"
+
+
+■ 2단계. 아래 확인 쿼리로 검증하세요.
+--------------------------------------------------------
+select column_name from information_schema.columns
+  where table_name='items' and column_name in ('grade','bloom');
+--------------------------------------------------------
+→ 기대 결과: grade, bloom 2행이 나와야 함
+
+--------------------------------------------------------
+select relrowsecurity from pg_class where relname='items';
+--------------------------------------------------------
+→ 기대 결과: false  (true면 아래를 추가 실행)
+   alter table items disable row level security;
+
+
+■ 설명
+ - grade  : 문항 급수(3급/2급/1급/1급 심화) — 기존 난이도(1/2/3)를 대체
+ - bloom  : Bloom 사고수준(보존용, 자동화 문항 가져오기 시 저장)
+ - 기존 15개 테스트 문항의 난이도는 급수로 자동 변환됩니다(1→3급, 2→2급, 3→1급).
+ - difficulty 컬럼은 삭제하지 않고 NOT NULL만 해제(안전). 코드는 더 이상 사용 안 함.
+========================================================

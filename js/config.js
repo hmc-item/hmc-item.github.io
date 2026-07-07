@@ -20,6 +20,7 @@ const CONST = {
   GRADES    : ['기능사', '산업기사', '기사'],
   GRADE_TO_DIFFICULTY: { '기능사': 1, '산업기사': 2, '기사': 3 },
   GRADE_TO_ITEMGRADE: { '기능사': '3급', '산업기사': '2급', '기사': '1급' },  // 샘플 자격등급→문항 급수 기본값(샘플 차용 프리필용)
-  DEFAULT_QUAL_NAME: '현대엔지비 직접개발'
+  DEFAULT_QUAL_NAME: '현대엔지비 직접개발',
+  THEORY_MIN_ITEMS: 10   // 이론서 생성 최소 문항수(방어선; 주 게이트는 dev_done)
 };
 window.CONST = CONST;

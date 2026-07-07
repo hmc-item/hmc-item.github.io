@@ -90,6 +90,12 @@
     ctx.canEdit = computeCanEdit();
     document.getElementById('actionbar').style.display = ctx.canEdit ? 'flex' : 'none';
     document.getElementById('readonly-badge').style.display = ctx.canEdit ? 'none' : 'inline-flex';
+    const dw = document.getElementById('devdone-wrap');
+    if (dw) {
+      dw.style.display = ctx.canEdit ? 'inline-flex' : 'none';
+      const chk = document.getElementById('devdone-chk');
+      if (chk) chk.checked = !!(comp && comp.dev_done);
+    }
     const list = filtered();
     document.getElementById('item-list').innerHTML = list.length
       ? list.map((it, i) => itemCard(it, i)).join('')
@@ -480,6 +486,16 @@
     if (jump) { jumpToItem(jump.dataset.navItem); return; }
     const slot = e.target.closest('[data-nav-slot]');
     if (slot && ctx.canEdit) openItemModal(null);
+  });
+
+  document.body.addEventListener('change', async (e) => {
+    const chk = e.target.closest('#devdone-chk'); if (!chk) return;
+    if (!ctx.canEdit) { chk.checked = !chk.checked; return; }
+    UI.showLoading('저장 중...');
+    const ok = await API.setDevDone(compId, chk.checked);
+    UI.hideLoading();
+    if (ok) { if (comp) comp.dev_done = chk.checked; UI.toast(chk.checked ? '문항개발 완료로 표시했습니다.' : '완료 표시를 해제했습니다.', 'success'); }
+    else { chk.checked = !chk.checked; UI.toast('저장 실패', 'error'); }
   });
 
   reload();

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>이론서 초안 — 문항개발 워크샵</title>
+  <link rel="stylesheet" href="css/common.css">
+  <link rel="stylesheet" href="css/theory.css">
+</head>
+<body>
+  <nav id="navbar"></nav>
+  <div class="page-wrapper">
+    <header class="th-head">
+      <div class="th-crumb" id="th-crumb">이론서</div>
+      <div class="th-title-row">
+        <h1 class="th-title" id="th-title">이론서 초안</h1>
+        <span class="th-range" id="th-range"></span>
+        <span class="ro-badge" id="th-ro" style="display:none;">👁 읽기 전용</span>
+      </div>
+      <div class="th-actions" id="th-actions" style="display:none;">
+        <button class="btn btn-secondary" data-act="regen">↻ 재생성</button>
+        <button class="btn btn-primary" data-act="save">💾 저장</button>
+      </div>
+    </header>
+    <main id="th-body" class="th-body"><div class="empty-state">불러오는 중…</div></main>
+  </div>
+
+  <script src="js/lib/supabase.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/theory-core.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/session.js"></script>
+  <script src="js/theory.js"></script>
+</body>
+</html>

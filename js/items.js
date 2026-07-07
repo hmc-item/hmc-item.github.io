@@ -491,11 +491,18 @@
   document.body.addEventListener('change', async (e) => {
     const chk = e.target.closest('#devdone-chk'); if (!chk) return;
     if (!ctx.canEdit) { chk.checked = !chk.checked; return; }
+    if (!API || typeof API.setDevDone !== 'function') {   // 캐시된 옛 api.js 방어(원인 노출)
+      chk.checked = !chk.checked;
+      UI.toast('저장 기능을 불러오지 못했습니다. 새로고침(Ctrl+Shift+R) 후 다시 시도하세요.', 'error', 6000);
+      return;
+    }
     UI.showLoading('저장 중...');
-    const ok = await API.setDevDone(compId, chk.checked);
+    let ok = false;
+    try { ok = await API.setDevDone(compId, chk.checked); }
+    catch (err) { console.error('[setDevDone]', err); ok = false; }
     UI.hideLoading();
     if (ok) { if (comp) comp.dev_done = chk.checked; UI.toast(chk.checked ? '문항개발 완료로 표시했습니다.' : '완료 표시를 해제했습니다.', 'success'); }
-    else { chk.checked = !chk.checked; UI.toast('저장 실패', 'error'); }
+    else { chk.checked = !chk.checked; UI.toast('저장 실패 — 새로고침 후 다시 시도하세요.', 'error'); }
   });
 
   reload();

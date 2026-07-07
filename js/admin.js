@@ -58,6 +58,8 @@
       '<td>' + escHtml(teamName(c.team_id)) + '</td>' +
       '<td class="td-center">' + (c.target_count != null ? c.target_count : 50) + '</td>' +
       '<td class="td-actions">' +
+        '<button class="btn btn-secondary btn-sm" data-act="th-open" data-id="' + escHtml(c.comp_id) + '">📘 이론서</button>' +
+        '<button class="btn ' + (c.dev_done ? 'btn-primary' : 'btn-secondary') + ' btn-sm" data-act="th-toggle" data-id="' + escHtml(c.comp_id) + '" data-v="' + (c.dev_done ? 0 : 1) + '">' + (c.dev_done ? '✅ 완료' : '○ 미완료') + '</button>' +
         '<button class="btn btn-secondary btn-sm" data-act="edit-comp" data-id="' + escHtml(c.comp_id) + '">수정</button>' +
         '<button class="btn btn-danger btn-sm" data-act="del-comp" data-id="' + escHtml(c.comp_id) + '">삭제</button>' +
       '</td></tr>').join('')
@@ -260,6 +262,15 @@
   document.body.addEventListener('click', async (e) => {
     const b = e.target.closest('[data-act]'); if (!b) return;
     const act = b.dataset.act;
+    if (act === 'th-open') { window.location.href = 'theory.html?comp=' + encodeURIComponent(b.dataset.id); return; }
+    if (act === 'th-toggle') {
+      UI.showLoading('저장 중...');
+      const ok = await API.setDevDone(b.dataset.id, b.dataset.v === '1');
+      UI.hideLoading();
+      if (ok) { UI.toast('완료 상태를 변경했습니다.', 'success'); window.renderCompsTab && window.renderCompsTab(); }
+      else UI.toast('저장 실패', 'error');
+      return;
+    }
     if (act === 'add-team') openTeamModal(null);
     if (act === 'team-close') UI.modal('team-modal', false);
     if (act === 'edit-team') openTeamModal(teams.find(t => t.team_id === b.dataset.id));

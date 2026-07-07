@@ -304,6 +304,32 @@ const API = (() => {
     return saveRow('help_texts', 'role', role, { role, body });
   }
 
+  // ===== Theory sections =====
+  async function getTheorySection(compId) {
+    const { data, error } = await DB.from('theory_sections')
+      .select('content,status,updated_at').eq('section_key', compId);
+    if (error) { console.error('[getTheorySection]', error); return null; }
+    return data && data[0] ? data[0] : null;
+  }
+  async function saveTheorySection(draft) {
+    if (!draft || !draft.sectionKey) return null;
+    const id = 'ths_' + draft.sectionKey;
+    const row = {
+      id, section_key: draft.sectionKey,
+      subject: draft.subject || null, section_title: draft.sectionTitle || null,
+      content: draft, status: draft.status || 'draft',
+      updated_at: new Date().toISOString(),
+    };
+    const ok = await saveRow('theory_sections', 'section_key', draft.sectionKey, row);
+    return ok ? { section_key: draft.sectionKey } : null;
+  }
+  async function setDevDone(compId, v) {
+    const { data } = await DB.from('competencies').select('*').eq('comp_id', compId);
+    if (!data || !data.length) return false;
+    const cur = data[0];
+    return saveRow('competencies', 'comp_id', compId, Object.assign({}, cur, { dev_done: !!v }));
+  }
+
   // ===== Comments =====
   async function getComments(p) {
     p = p || {}; let q = DB.from('comments').select('*');
@@ -368,6 +394,7 @@ const API = (() => {
     copySampleImageToItem,
     getNotices, getNoticesForTeam, saveNotice, deleteNotice,
     getHelpTexts, getHelpText, saveHelpText,
+    getTheorySection, saveTheorySection, setDevDone,
     uploadErrorMessage: () => lastUploadError
   };
 })();

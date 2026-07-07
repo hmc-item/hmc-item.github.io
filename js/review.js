@@ -76,6 +76,11 @@
     ['rf-comp','rf-team','rf-type','rf-diff'].forEach(id =>
       document.getElementById(id).addEventListener('change', applyFilters));
     document.getElementById('rf-unres').addEventListener('change', applyFilters);
+    document.getElementById('rf-theory').addEventListener('click', () => {
+      const fc = document.getElementById('rf-comp').value;
+      if (!fc) { UI.toast('역량을 먼저 선택하세요.', 'warning'); return; }
+      window.location.href = 'theory.html?comp=' + encodeURIComponent(fc);
+    });
     await loadItemsAndComments();
   }
 

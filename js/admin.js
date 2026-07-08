@@ -15,8 +15,8 @@
     comps: {
       comp_name   : { type: 'str', get: c => c.comp_name },
       category    : { type: 'str', get: c => c.category || '' },
-      team        : { type: 'str', get: c => teamName(c.team_id) },
-      target_count: { type: 'num', get: c => (c.target_count != null ? c.target_count : 50) },
+      team        : { type: 'str', get: c => compTeamIds(c).map(id => teamName(id)).join(', ') },
+      target_count: { type: 'num', get: c => compTotalTarget(c) },
     },
   };
   function sortRows(arr, table) {
@@ -120,8 +120,8 @@
       '<tr><td class="td-center td-no">' + (i + 1) + '</td>' +
       '<td><strong>' + escHtml(c.comp_name) + '</strong></td>' +
       '<td>' + escHtml(c.category || '-') + '</td>' +
-      '<td>' + escHtml(teamName(c.team_id)) + '</td>' +
-      '<td class="td-center">' + (c.target_count != null ? c.target_count : 50) + '</td>' +
+      '<td>' + escHtml(compTeamIds(c).map(id => teamName(id)).join(', ') || '-') + '</td>' +
+      '<td class="td-center">' + compTotalTarget(c) + '</td>' +
       '<td class="td-actions">' +
         '<button class="btn btn-secondary btn-sm" data-act="th-open" data-id="' + escHtml(c.comp_id) + '">📘 이론서</button>' +
         '<button class="btn ' + (c.dev_done ? 'btn-primary' : 'btn-secondary') + ' btn-sm" data-act="th-toggle" data-id="' + escHtml(c.comp_id) + '" data-v="' + (c.dev_done ? 0 : 1) + '">' + (c.dev_done ? '✅ 완료' : '○ 미완료') + '</button>' +

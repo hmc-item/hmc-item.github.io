@@ -12,7 +12,12 @@
   window.itemsCtx = ctx;
 
   function computeCanEdit() {
-    return s.role === 'sme' && comp && comp.team_id === s.team_id;
+    return s.role === 'sme' && comp && compTeamIds(comp).indexOf(s.team_id) >= 0;
+  }
+  function myTarget() {
+    if (!comp) return CONST.DEFAULT_TARGET;
+    const asg = (s.role === 'sme') ? assignmentFor(comp, s.team_id) : null;
+    return asg ? asg.target_count : compTotalTarget(comp);
   }
 
   document.querySelector('.page-wrapper').addEventListener('click', (e) => {
@@ -55,7 +60,7 @@
 
   function renderNav() {
     const el = document.getElementById('items-nav'); if (!el) return;
-    const target = comp && comp.target_count != null ? comp.target_count : 50;
+    const target = myTarget();
     const count = items.length;
     const total = Math.max(count, target);
     const cmMap = window._cmMap || {};
@@ -84,7 +89,7 @@
   function render() {
     document.getElementById('comp-title').textContent = comp ? comp.comp_name : '역량';
     document.getElementById('comp-cat').textContent = comp && comp.category ? comp.category : '';
-    const target = comp && comp.target_count != null ? comp.target_count : 50;
+    const target = myTarget();
     const r = target ? Math.round(items.length / target * 100) : 0;
     document.getElementById('items-rate').textContent = r + '%' + (r > 100 ? ' 초과' : '');
     ctx.canEdit = computeCanEdit();
@@ -110,7 +115,8 @@
     const comps = await API.getCompetencies();
     comp = comps.find(c => c.comp_id === compId) || null;
     ctx.comp = comp;
-    items = await API.getItems({ comp_id: compId });
+    const teamFilter = (s.role === 'sme') ? s.team_id : undefined;
+    items = await API.getItems({ comp_id: compId, team_id: teamFilter });
     const imgMap = await API.getImagesByItems(items.map(i => i.item_id));
     window._imgMap = imgMap;
     const cmMap = await API.getCommentsByItems(items.map(i => i.item_id));
@@ -388,7 +394,7 @@
       const type = document.getElementById('im-type').value;
       const body = {
         item_id: document.getElementById('item-modal-id').value || undefined,
-        comp_id: compId, team_id: (comp ? comp.team_id : s.team_id), item_type: type,
+        comp_id: compId, team_id: s.team_id, item_type: type,
         grade: document.getElementById('im-diff').value,
         question: document.getElementById('im-question').value.trim(),
         option1: document.getElementById('im-o1').value.trim(),
@@ -454,7 +460,7 @@
       let done = 0, fail = 0;
       for (let i = 0; i < ok.length; i++) {
         UI.showLoading('저장 중... (' + (i + 1) + '/' + ok.length + ')');
-        const body = Object.assign({ comp_id: ctx.compId, team_id: (comp ? comp.team_id : s.team_id) }, ok[i].data);
+        const body = Object.assign({ comp_id: ctx.compId, team_id: s.team_id }, ok[i].data);
         const r = await API.saveItem(body); r ? done++ : fail++;
       }
       UI.hideLoading();

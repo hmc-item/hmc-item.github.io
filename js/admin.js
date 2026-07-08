@@ -227,9 +227,9 @@
 
     // 분반별
     const groupCard = (name, teamIds) => {
-      const gcomps = cs.filter(c => teamIds.includes(c.team_id));
-      const cnt = gcomps.reduce((a, c) => a + (counts[c.comp_id] || 0), 0);
-      const tgt = gcomps.reduce((a, c) => a + (Number(c.target_count) || 0), 0);
+      const cnt = allItems.filter(i => teamIds.includes(i.team_id)).length;
+      let tgt = 0;
+      cs.forEach(c => compAssignments(c).forEach(a => { if (teamIds.includes(a.team_id)) tgt += Number(a.target_count) || 0; }));
       const r = rateOf(cnt, tgt);
       return '<div class="dash-card"><div class="dash-card-top"><span class="dash-name">' + escHtml(name) + '</span>' +
         '<span class="dash-rate ' + (r > 100 ? 'over' : (r < 100 ? 'under' : 'ok')) + '">' + r + '%</span></div>' +
@@ -465,6 +465,15 @@
   }
   window.renderImportTab = renderImportTab;
 
+  // 가져오기: 역량 선택 시 배정 조가 1개면 조 자동선택
+  document.body.addEventListener('change', (e) => {
+    const sel = e.target.closest('select[id^="imp-comp-"]'); if (!sel) return;
+    const g = _impGroups.find(x => x.compSelId === sel.id); if (!g) return;
+    const c = (window._impComps || []).find(x => x.comp_id === sel.value);
+    const tsel = document.getElementById(g.teamSelId);
+    if (c && tsel) { const tids = compTeamIds(c); tsel.value = (tids.length === 1) ? tids[0] : ''; }
+  });
+
   async function _impOnFile(file) {
     if (!window._adminTeams) await loadTeams();
     const comps = await API.getCompetencies();
@@ -492,27 +501,34 @@
     });
     _impGroups = Object.keys(gmap).map((k, gi) => ({
       job: gmap[k].job, area: gmap[k].area, rows: gmap[k].rows,
-      compId: gmap[k].compId, compSelId: 'imp-comp-' + gi
+      compId: gmap[k].compId, compSelId: 'imp-comp-' + gi, teamSelId: 'imp-team-' + gi
     }));
 
     const compOpts = '<option value="">— 역량 선택 —</option>' +
       comps.map(c => '<option value="' + escHtml(c.comp_id) + '">' +
-        escHtml(c.comp_name) + ' (' + escHtml(teamName(c.team_id)) + ')</option>').join('');
+        escHtml(c.comp_name) + ' (' + escHtml(compTeamIds(c).map(id => teamName(id)).join(', ') || '-') + ')</option>').join('');
+    const teamOpts = '<option value="">— 조 선택 —</option>' +
+      (window._adminTeams || []).map(t => '<option value="' + escHtml(t.team_id) + '">' + escHtml(t.team_name) + '</option>').join('');
 
     document.getElementById('imp-map').innerHTML = _impGroups.length ?
-      '<table class="admin-table"><thead><tr><th>원본 (직무 ▸ 역량명)</th><th>문항수</th><th>→ item-dev 역량</th></tr></thead><tbody>' +
+      '<table class="admin-table"><thead><tr><th>원본 (직무 ▸ 역량명)</th><th>문항수</th><th>→ item-dev 역량</th><th>→ 조</th></tr></thead><tbody>' +
       _impGroups.map(g =>
         '<tr><td>' + escHtml(g.job) + ' ▸ ' + escHtml(g.area || '(역량명 없음)') + '</td>' +
         '<td class="td-center">' + g.rows.length + '</td>' +
-        '<td><select class="form-control form-select" id="' + g.compSelId + '">' + compOpts + '</select></td></tr>'
+        '<td><select class="form-control form-select" id="' + g.compSelId + '">' + compOpts + '</select></td>' +
+        '<td><select class="form-control form-select" id="' + g.teamSelId + '">' + teamOpts + '</select></td></tr>'
       ).join('') + '</tbody></table>'
       : '<p class="table-empty">유효한 문항이 없습니다.</p>';
 
-    // 파일에 역량코드가 채워져 있고 해당 comp가 존재하면 드롭다운 자동 선택
+    // 파일에 역량코드가 채워져 있고 해당 comp가 존재하면 드롭다운 자동 선택 + 조 자동선택(배정 조 1개면)
     _impGroups.forEach(g => {
       if (g.compId && comps.some(c => c.comp_id === g.compId)) {
         const sel = document.getElementById(g.compSelId); if (sel) sel.value = g.compId;
       }
+      const csel = document.getElementById(g.compSelId);
+      const c = csel ? comps.find(x => x.comp_id === csel.value) : null;
+      const tsel = document.getElementById(g.teamSelId);
+      if (c && tsel) { const tids = compTeamIds(c); if (tids.length === 1) tsel.value = tids[0]; }
     });
 
     document.getElementById('imp-run').disabled = !_impGroups.length;
@@ -523,9 +539,11 @@
     for (const g of _impGroups) {
       const compId = document.getElementById(g.compSelId).value;
       if (!compId) { UI.toast('모든 그룹에 역량을 지정하세요: ' + g.job + ' ▸ ' + g.area, 'warning'); return; }
+      const teamId = document.getElementById(g.teamSelId).value;
+      if (!teamId) { UI.toast('모든 그룹에 조를 지정하세요: ' + g.job + ' ▸ ' + g.area, 'warning'); return; }
       const comp = (window._impComps || []).find(c => c.comp_id === compId);
       if (!comp) { UI.toast('역량을 찾을 수 없습니다.', 'error'); return; }
-      jobs.push({ g, compId, teamId: comp.team_id });
+      jobs.push({ g, compId, teamId });
     }
     const ok = await UI.confirm('선택한 그룹의 문항을 저장합니다. 계속할까요?');
     if (!ok) return;

@@ -11,7 +11,7 @@
   function computeCanEdit(comp) {
     if (!comp) return false;
     if (s.role === 'admin' || s.role === 'coach') return true;
-    return s.role === 'sme' && comp.team_id === s.team_id;
+    return s.role === 'sme' && compTeamIds(comp).indexOf(s.team_id) >= 0;
   }
 
   function statusWrap(status, html, label) {
@@ -153,7 +153,8 @@
       if (hasEdit && !(await UI.confirm('편집한 내용이 모두 사라지고 문항에서 다시 생성합니다. 계속할까요?'))) return;
       UI.showLoading('재생성 중...');
       const [items, comps, counts] = await Promise.all([API.getItems({ comp_id: compId }), API.getCompetencies(), API.getItemCounts()]);
-      const sameTeam = comps.filter(c => c.team_id === ctx.comp.team_id);
+      const ctxTids = compTeamIds(ctx.comp);
+      const sameTeam = comps.filter(c => compTeamIds(c).some(id => ctxTids.indexOf(id) >= 0));
       const maxOverall = Math.max(1, ...sameTeam.map(c => counts[c.comp_id] || 0));
       const nd = TheoryCore.buildSection(items, {
         maxOverall, subject: ctx.teamName, sectionTitle: ctx.comp.comp_name,
@@ -182,7 +183,8 @@
       document.getElementById('th-body').innerHTML = '<div class="empty-state">역량을 찾을 수 없습니다.</div>';
       return;
     }
-    const team = teams.find(t => t.team_id === comp.team_id);
+    const myTid = (s.role === 'sme') ? s.team_id : (compTeamIds(comp)[0] || null);
+    const team = teams.find(t => t.team_id === myTid);
     ctx.teamName = team ? team.team_name : '';
 
     const saved = await API.getTheorySection(compId);
@@ -190,7 +192,8 @@
       draft = saved.content;
     } else {
       const items = await API.getItems({ comp_id: compId });
-      const sameTeam = comps.filter(c => c.team_id === comp.team_id);
+      const compTids = compTeamIds(comp);
+      const sameTeam = comps.filter(c => compTeamIds(c).some(id => compTids.indexOf(id) >= 0));
       const maxOverall = Math.max(1, ...sameTeam.map(c => counts[c.comp_id] || 0));
       draft = TheoryCore.buildSection(items, {
         maxOverall, subject: ctx.teamName, sectionTitle: comp.comp_name,

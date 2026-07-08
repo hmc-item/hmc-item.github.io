@@ -1056,3 +1056,10 @@
 .help-preview-box h3 { margin: 0 0 8px; font-size: 15px; }
 .help-edit-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
 @media (max-width: 720px) { .help-edit-grid { grid-template-columns: 1fr; } }
+
+/* 역량 모달 조 배정 에디터 */
+.assign-box { max-height: 240px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; padding: 8px; }
+.assign-row { display: flex; align-items: center; gap: 12px; padding: 4px 6px; }
+.assign-row + .assign-row { border-top: 1px solid var(--border); }
+.assign-chk { flex: 1; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+.assign-target { width: 90px; flex: none; }

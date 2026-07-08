@@ -133,20 +133,32 @@
   }
 
   function openCompModal(c) {
-    const sel = document.getElementById('comp-modal-team');
-    sel.innerHTML = '<option value="">조 선택</option>' +
-      (window._adminTeams || []).map(t => '<option value="' + escHtml(t.team_id) + '">' +
-        escHtml(t.team_name) + '</option>').join('');
+    const assigned = c ? compAssignments(c) : [];
+    const amap = {};
+    assigned.forEach(a => { amap[a.team_id] = a.target_count; });
+    const box = document.getElementById('comp-assign-box');
+    box.innerHTML = (window._adminTeams || []).map(t => {
+      const on = amap[t.team_id] != null;
+      const tgt = on ? amap[t.team_id] : CONST.DEFAULT_TARGET;
+      return '<div class="assign-row">' +
+        '<label class="assign-chk"><input type="checkbox" class="assign-team" value="' + escHtml(t.team_id) + '"' + (on ? ' checked' : '') + '> ' + escHtml(t.team_name) + '</label>' +
+        '<input type="number" class="form-control assign-target" data-team="' + escHtml(t.team_id) + '" min="0" value="' + tgt + '"' + (on ? '' : ' disabled') + '></div>';
+    }).join('') || '<p class="table-empty">먼저 조를 등록하세요.</p>';
     document.getElementById('comp-modal-id').value     = c ? c.comp_id : '';
     document.getElementById('comp-modal-name').value   = c ? c.comp_name : '';
     document.getElementById('comp-modal-cat').value    = c ? (c.category || '') : '';
-    document.getElementById('comp-modal-team').value   = c ? (c.team_id || '') : '';
-    document.getElementById('comp-modal-target').value = c ? (c.target_count != null ? c.target_count : 50) : 50;
     document.getElementById('comp-modal-order').value  = c ? (c.order_index || 0) : 0;
     document.getElementById('comp-modal-desc').value   = c ? (c.description || '') : '';
     document.getElementById('comp-modal-title').textContent = c ? '역량 수정' : '역량 추가';
     UI.modal('comp-modal', true);
   }
+  // 배정 에디터: 체크박스 토글 시 목표 입력칸 활성/비활성
+  document.body.addEventListener('change', (e) => {
+    const chk = e.target.closest('.assign-team'); if (!chk) return;
+    const box = e.target.closest('.assign-box'); if (!box) return;
+    const tgt = box.querySelector('.assign-target[data-team="' + chk.value + '"]');
+    if (tgt) tgt.disabled = !chk.checked;
+  });
 
   // ---- 진척 대시보드 ----
   function rateOf(cnt, target) { const t = Number(target) || 0; return t ? Math.round((cnt||0)/t*100) : 0; }
@@ -366,16 +378,22 @@
     }
     if (act === 'comp-save') {
       const id = document.getElementById('comp-modal-id').value;
+      const assignments = [];
+      document.querySelectorAll('#comp-assign-box .assign-team').forEach(chk => {
+        if (chk.checked) {
+          const tgt = document.querySelector('#comp-assign-box .assign-target[data-team="' + chk.value + '"]');
+          assignments.push({ team_id: chk.value, target_count: Number(tgt && tgt.value) || 0 });
+        }
+      });
       const body = {
         comp_name: document.getElementById('comp-modal-name').value.trim(),
         category : document.getElementById('comp-modal-cat').value.trim() || null,
-        team_id  : document.getElementById('comp-modal-team').value,
-        target_count: Number(document.getElementById('comp-modal-target').value) || 0,
+        assignments: assignments,
         order_index : Number(document.getElementById('comp-modal-order').value) || 0,
         description : document.getElementById('comp-modal-desc').value.trim() || null
       };
       if (!body.comp_name) { UI.toast('역량명을 입력해주세요.', 'warning'); return; }
-      if (!body.team_id)   { UI.toast('담당 조를 선택해주세요.', 'warning'); return; }
+      if (!assignments.length) { UI.toast('담당 조를 1개 이상 선택해주세요.', 'warning'); return; }
       UI.showLoading('저장 중...');
       const ok = id ? await API.updateCompetency(Object.assign({ comp_id: id }, body))
                     : !!(await API.addCompetency(body));

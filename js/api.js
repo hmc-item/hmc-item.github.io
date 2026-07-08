@@ -38,8 +38,9 @@ const API = (() => {
     const id = generateId('c');
     const ok = await saveRow('competencies', null, null, {
       id, comp_id: id, comp_name: b.comp_name, category: b.category || null,
-      description: b.description || null, team_id: b.team_id || null,
-      target_count: b.target_count != null ? b.target_count : CONST.DEFAULT_TARGET,
+      description: b.description || null,
+      team_id: null, target_count: null,
+      assignments: Array.isArray(b.assignments) ? b.assignments : [],
       order_index: b.order_index || 0
     });
     return ok ? { comp_id: id } : null;
@@ -52,7 +53,8 @@ const API = (() => {
     return saveRow('competencies', 'comp_id', b.comp_id, {
       id: cur.id, comp_id: b.comp_id, comp_name: pick('comp_name'),
       category: pick('category'), description: pick('description'),
-      team_id: pick('team_id'), target_count: pick('target_count'),
+      team_id: null, target_count: null,
+      assignments: (b.assignments !== undefined ? (Array.isArray(b.assignments) ? b.assignments : []) : (cur.assignments || [])),
       order_index: pick('order_index'), created_at: cur.created_at
     });
   }
@@ -72,8 +74,10 @@ const API = (() => {
     if (error) { console.error('[getItems]', error); return []; }
     return (data || []).sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
   }
-  async function getItemCounts() {
-    const { data, error } = await DB.from('items').select('comp_id');
+  async function getItemCounts(teamId) {
+    let q = DB.from('items').select('comp_id');
+    if (teamId) q = q.eq('team_id', teamId);
+    const { data, error } = await q;
     if (error) { console.error('[getItemCounts]', error); return {}; }
     const m = {};
     (data || []).forEach(r => { m[r.comp_id] = (m[r.comp_id] || 0) + 1; });

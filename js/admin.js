@@ -176,7 +176,7 @@
 
     // 역량별
     document.getElementById('dash-comp').innerHTML = cs.length ? cs.map(c => {
-      const cnt = counts[c.comp_id] || 0, target = c.target_count != null ? c.target_count : 50;
+      const cnt = counts[c.comp_id] || 0, target = compTotalTarget(c);
       const r = rateOf(cnt, target), over = r > 100, under = r < 100;
       const byType = allItems.filter(i => i.comp_id === c.comp_id);
       const mcq = byType.filter(i => i.item_type === 'mcq').length;
@@ -184,7 +184,7 @@
       const u = unres[c.comp_id] || 0;
       return '<div class="dash-card"><div class="dash-card-top"><span class="dash-name">' + escHtml(c.comp_name) + '</span>' +
         '<span class="dash-rate ' + (over ? 'over' : (under ? 'under' : 'ok')) + '">' + r + '%</span></div>' +
-        '<div class="dash-meta">' + escHtml(tname(c.team_id)) + '</div>' +
+        '<div class="dash-meta">' + escHtml(compTeamIds(c).map(id => tname(id)).join(', ') || '-') + '</div>' +
         '<div class="dash-bar"><div class="dash-bar-fill" style="width:' + Math.min(r,100) + '%"></div></div>' +
         '<div class="dash-foot"><span>' + cnt + '/' + target + '</span>' +
           '<span>객 ' + mcq + ' · 서 ' + essay + '</span>' +
@@ -193,9 +193,9 @@
 
     // 조별
     const teamAgg = ts.map(t => {
-      const tc = cs.filter(c => c.team_id === t.team_id);
-      const cnt = tc.reduce((a, c) => a + (counts[c.comp_id] || 0), 0);
-      const tgt = tc.reduce((a, c) => a + (Number(c.target_count) || 0), 0);
+      const tc = cs.filter(c => compTeamIds(c).indexOf(t.team_id) >= 0);
+      const cnt = allItems.filter(i => i.team_id === t.team_id).length;
+      const tgt = tc.reduce((a, c) => { const asg = assignmentFor(c, t.team_id); return a + (asg ? Number(asg.target_count) || 0 : 0); }, 0);
       return { name: t.team_name, cnt, tgt, r: rateOf(cnt, tgt), n: tc.length };
     });
     document.getElementById('dash-team').innerHTML = teamAgg.length ? teamAgg.map(t =>

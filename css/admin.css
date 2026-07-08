@@ -81,6 +81,16 @@
 .admin-table tr:hover td      { background: var(--bg); }
 .admin-table tr:last-child td { border-bottom: none; }
 
+/* 클릭 정렬 헤더 */
+.admin-table th[data-sort-key]        { cursor: pointer; user-select: none; }
+.admin-table th[data-sort-key]:hover  { color: var(--text-primary); }
+.admin-table th.sorted-asc::after     { content: ' ▲'; font-size: 10px; }
+.admin-table th.sorted-desc::after    { content: ' ▼'; font-size: 10px; }
+
+/* No 열 */
+.admin-table .th-no,
+.admin-table .td-no { width: 48px; text-align: center; color: var(--text-secondary); }
+
 .table-empty {
   text-align: center;
   color     : var(--text-muted);

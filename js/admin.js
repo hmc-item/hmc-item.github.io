@@ -4,6 +4,57 @@
 
   let teams = [];
 
+  // ---- 헤더 클릭 정렬 (클라이언트 메모리, 탭 재진입 시 초기화) ----
+  const sortState = { teams: { key: null, dir: 1 }, comps: { key: null, dir: 1 } };
+  const SORT_COLS = {
+    teams: {
+      team_name : { type: 'str', get: t => t.team_name },
+      class_no  : { type: 'num', get: t => t.class_no },
+      created_at: { type: 'str', get: t => String(t.created_at || '').slice(0, 10) },
+    },
+    comps: {
+      comp_name   : { type: 'str', get: c => c.comp_name },
+      category    : { type: 'str', get: c => c.category || '' },
+      team        : { type: 'str', get: c => teamName(c.team_id) },
+      target_count: { type: 'num', get: c => (c.target_count != null ? c.target_count : 50) },
+    },
+  };
+  function sortRows(arr, table) {
+    const st = sortState[table]; if (!st.key) return arr.slice();
+    const col = SORT_COLS[table][st.key]; if (!col) return arr.slice();
+    const dir = st.dir;
+    return arr.slice().sort((a, b) => {
+      const va = col.get(a), vb = col.get(b);
+      if (col.type === 'num') {
+        const na = (va == null || va === '') ? null : Number(va);
+        const nb = (vb == null || vb === '') ? null : Number(vb);
+        if (na == null && nb == null) return 0;
+        if (na == null) return 1;      // 빈값은 항상 뒤로
+        if (nb == null) return -1;
+        return (na - nb) * dir;
+      }
+      return String(va == null ? '' : va).localeCompare(String(vb == null ? '' : vb), 'ko') * dir;
+    });
+  }
+  function applySortIndicators(table) {
+    const thead = document.querySelector('thead[data-sort-table="' + table + '"]');
+    if (!thead) return;
+    thead.querySelectorAll('th[data-sort-key]').forEach(th => {
+      th.classList.remove('sorted-asc', 'sorted-desc');
+      if (th.dataset.sortKey === sortState[table].key) {
+        th.classList.add(sortState[table].dir === 1 ? 'sorted-asc' : 'sorted-desc');
+      }
+    });
+  }
+  document.body.addEventListener('click', (e) => {
+    const th = e.target.closest('th[data-sort-key]'); if (!th) return;
+    const thead = th.closest('thead[data-sort-table]'); if (!thead) return;
+    const table = thead.dataset.sortTable;
+    const key = th.dataset.sortKey, st = sortState[table];
+    if (st.key === key) st.dir = -st.dir; else { st.key = key; st.dir = 1; }
+    if (table === 'teams') renderTeamsBody(); else renderCompsBody();
+  });
+
   // ---- 탭 전환 ----
   document.querySelector('.admin-tabs').addEventListener('click', (e) => {
     const t = e.target.closest('.admin-tab'); if (!t) return;
@@ -23,18 +74,25 @@
   async function loadTeams() {
     teams = await API.getTeams();
     window._adminTeams = teams; // 다른 탭 공유
+    renderTeamsBody();
+  }
+  window.adminReloadTeams = loadTeams;
+
+  function renderTeamsBody() {
     const tb = document.getElementById('teams-tbody');
-    tb.innerHTML = teams.length ? teams.map(t =>
-      '<tr><td><strong>' + escHtml(t.team_name) + '</strong></td>' +
+    const rows = sortRows(teams, 'teams');
+    tb.innerHTML = rows.length ? rows.map((t, i) =>
+      '<tr><td class="td-center td-no">' + (i + 1) + '</td>' +
+      '<td><strong>' + escHtml(t.team_name) + '</strong></td>' +
       '<td class="td-center">' + (t.class_no ? escHtml(CONST.CLASS_LABEL[t.class_no] || t.class_no) : '-') + '</td>' +
       '<td class="td-center">' + escHtml(String(t.created_at || '').slice(0,10)) + '</td>' +
       '<td class="td-actions">' +
         '<button class="btn btn-secondary btn-sm" data-act="edit-team" data-id="' + escHtml(t.team_id) + '">수정</button>' +
         '<button class="btn btn-danger btn-sm" data-act="del-team" data-id="' + escHtml(t.team_id) + '">삭제</button>' +
       '</td></tr>').join('')
-      : '<tr><td colspan="4" class="table-empty">등록된 조가 없습니다.</td></tr>';
+      : '<tr><td colspan="5" class="table-empty">등록된 조가 없습니다.</td></tr>';
+    applySortIndicators('teams');
   }
-  window.adminReloadTeams = loadTeams;
 
   function openTeamModal(team) {
     document.getElementById('team-modal-id').value = team ? team.team_id : '';
@@ -51,9 +109,16 @@
   async function renderCompsTab() {
     if (!window._adminTeams) await loadTeams();
     comps = await API.getCompetencies();
+    renderCompsBody();
+  }
+  window.renderCompsTab = renderCompsTab;
+
+  function renderCompsBody() {
     const tb = document.getElementById('comps-tbody');
-    tb.innerHTML = comps.length ? comps.map(c =>
-      '<tr><td><strong>' + escHtml(c.comp_name) + '</strong></td>' +
+    const rows = sortRows(comps, 'comps');
+    tb.innerHTML = rows.length ? rows.map((c, i) =>
+      '<tr><td class="td-center td-no">' + (i + 1) + '</td>' +
+      '<td><strong>' + escHtml(c.comp_name) + '</strong></td>' +
       '<td>' + escHtml(c.category || '-') + '</td>' +
       '<td>' + escHtml(teamName(c.team_id)) + '</td>' +
       '<td class="td-center">' + (c.target_count != null ? c.target_count : 50) + '</td>' +
@@ -63,9 +128,9 @@
         '<button class="btn btn-secondary btn-sm" data-act="edit-comp" data-id="' + escHtml(c.comp_id) + '">수정</button>' +
         '<button class="btn btn-danger btn-sm" data-act="del-comp" data-id="' + escHtml(c.comp_id) + '">삭제</button>' +
       '</td></tr>').join('')
-      : '<tr><td colspan="5" class="table-empty">등록된 역량이 없습니다.</td></tr>';
+      : '<tr><td colspan="6" class="table-empty">등록된 역량이 없습니다.</td></tr>';
+    applySortIndicators('comps');
   }
-  window.renderCompsTab = renderCompsTab;
 
   function openCompModal(c) {
     const sel = document.getElementById('comp-modal-team');

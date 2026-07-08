@@ -20,16 +20,16 @@
     <div class="card-header"><span class="card-title">조 목록</span>
       <button class="btn btn-primary btn-sm" data-act="add-team">+ 조 추가</button></div>
     <div class="card-body"><div class="table-wrap"><table class="admin-table">
-      <thead><tr><th>직무명(조)</th><th>분반</th><th>등록일</th><th>관리</th></tr></thead>
-      <tbody id="teams-tbody"><tr><td colspan="4" class="table-empty">불러오는 중...</td></tr></tbody>
+      <thead data-sort-table="teams"><tr><th class="th-no">No</th><th data-sort-key="team_name">직무명(조)</th><th data-sort-key="class_no">분반</th><th data-sort-key="created_at">등록일</th><th>관리</th></tr></thead>
+      <tbody id="teams-tbody"><tr><td colspan="5" class="table-empty">불러오는 중...</td></tr></tbody>
     </table></div></div></div></div>
 
   <div class="tab-content" id="tab-comps">
     <div class="card"><div class="card-header"><span class="card-title">역량 목록</span>
       <button class="btn btn-primary btn-sm" data-act="add-comp">+ 역량 추가</button></div>
       <div class="card-body"><div class="table-wrap"><table class="admin-table">
-        <thead><tr><th>역량명</th><th>분류</th><th>담당 조</th><th>목표</th><th>관리</th></tr></thead>
-        <tbody id="comps-tbody"><tr><td colspan="5" class="table-empty">탭을 선택하면 불러옵니다.</td></tr></tbody>
+        <thead data-sort-table="comps"><tr><th class="th-no">No</th><th data-sort-key="comp_name">역량명</th><th data-sort-key="category">분류</th><th data-sort-key="team">담당 조</th><th data-sort-key="target_count">목표</th><th>관리</th></tr></thead>
+        <tbody id="comps-tbody"><tr><td colspan="6" class="table-empty">탭을 선택하면 불러옵니다.</td></tr></tbody>
       </table></div></div></div>
   </div>
   <div class="tab-content" id="tab-dash">

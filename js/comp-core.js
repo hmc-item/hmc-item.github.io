@@ -33,7 +33,23 @@
     return compAssignments(comp).reduce(function (a, x) { return a + (Number(x.target_count) || 0); }, 0);
   }
 
-  var api = { compAssignments: compAssignments, assignmentFor: assignmentFor, compTeamIds: compTeamIds, compTotalTarget: compTotalTarget };
+  function compDevDoneTeams(comp) {
+    if (!comp) return [];
+    var a = comp.dev_done_teams;
+    if (typeof a === 'string') { try { a = JSON.parse(a); } catch (e) { a = null; } }
+    if (!Array.isArray(a)) return [];
+    var out = [];
+    for (var i = 0; i < a.length; i++) if (a[i]) out.push(a[i]);
+    return out;
+  }
+  function isDevDone(comp, teamId) {
+    return compDevDoneTeams(comp).indexOf(teamId) >= 0;
+  }
+  function theoryKey(compId, teamId) {
+    return String(compId) + '::' + String(teamId);
+  }
+
+  var api = { compAssignments: compAssignments, assignmentFor: assignmentFor, compTeamIds: compTeamIds, compTotalTarget: compTotalTarget, compDevDoneTeams: compDevDoneTeams, isDevDone: isDevDone, theoryKey: theoryKey };
   if (typeof window !== 'undefined') for (var k in api) window[k] = api[k];
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })();

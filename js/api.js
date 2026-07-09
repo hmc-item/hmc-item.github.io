@@ -86,7 +86,7 @@ const API = (() => {
   function normItem(b, idOverride) {
     const isMcq = b.item_type === 'mcq';
     return {
-      item_id: idOverride, comp_id: b.comp_id, team_id: b.team_id,
+      item_id: idOverride, comp_id: b.comp_id || null, team_id: b.team_id || null,
       item_type: b.item_type, grade: b.grade || null, bloom: b.bloom || null,
       question: b.question || '',
       option1: isMcq ? (b.option1 || '') : null,
@@ -117,6 +117,34 @@ const API = (() => {
     const { error } = await DB.from('items').delete().eq('item_id', itemId);
     if (error) { console.error('[deleteItem]', error); return false; }
     return true;
+  }
+
+  // ===== 문제은행(Item Bank) — 역량 미연결 문항 =====
+  async function getItem(itemId) {
+    const { data } = await DB.from('items').select('*').eq('item_id', itemId);
+    return (data && data[0]) || null;
+  }
+  async function getBankItems() {
+    const [items, comps] = await Promise.all([getItems({}), getCompetencies()]);
+    return filterBankItems(items, comps);
+  }
+  async function saveBankItem(b) {
+    if (!b.item_type || !b.question) return null;
+    const id = generateId('it');
+    const row = normItem(Object.assign({}, b, { comp_id: null, team_id: null }), id);
+    row.created_at = new Date().toISOString();
+    const ok = await saveRow('items', null, null, row);
+    return ok ? { item_id: id } : null;
+  }
+  async function moveItemToBank(itemId) {
+    const cur = await getItem(itemId); if (!cur) return false;
+    cur.comp_id = null; cur.team_id = null; cur.updated_at = new Date().toISOString();
+    return await saveRow('items', 'item_id', itemId, cur);
+  }
+  async function assignBankItem(itemId, comp_id, team_id) {
+    const cur = await getItem(itemId); if (!cur) return false;
+    cur.comp_id = comp_id; cur.team_id = team_id; cur.updated_at = new Date().toISOString();
+    return await saveRow('items', 'item_id', itemId, cur);
   }
 
   // ===== Images =====
@@ -389,7 +417,8 @@ const API = (() => {
   return {
     getTeams, addTeam, updateTeam, deleteTeam,
     getCompetencies, addCompetency, updateCompetency, deleteCompetency,
-    getItems, getItemCounts, saveItem, deleteItem,
+    getItems, getItemCounts, saveItem, deleteItem, getItem,
+    getBankItems, saveBankItem, moveItemToBank, assignBankItem,
     getImages, getImagesByItems, uploadImage, deleteImage, publicUrl,
     getComments, getCommentsByItems, getUnresolvedCounts,
     addComment, updateComment, setCommentResolved, deleteComment,

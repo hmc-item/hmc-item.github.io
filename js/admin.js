@@ -626,9 +626,10 @@
       '<div class="item-q">' + esc(it.question || '') + '</div>' + body +
       (it.explanation ? '<div class="item-exp"><span class="field-label">해설</span>' + esc(it.explanation) + '</div>' : '');
   }
-  document.getElementById('tab-bank').addEventListener('click', async (e) => {
+  document.body.addEventListener('click', async (e) => {
     const b = e.target.closest('[data-act]'); if (!b) return;
-    const act = b.dataset.act, id = b.dataset.id;
+    const act = b.dataset.act; if (act.slice(0, 5) !== 'bank-') return;
+    const id = b.dataset.id;
     if (act === 'bank-preview-close') { UI.modal('bank-preview-modal', false); return; }
     if (act === 'bank-preview') {
       const it = bankItemById(id); if (!it) return;
@@ -644,6 +645,38 @@
       else UI.toast('삭제 실패', 'error');
       return;
     }
+    if (act === 'bank-assign') {
+      const it = bankItemById(id); if (!it) return;
+      const comps = window._bankComps || [];
+      const teams = window._adminTeams || [];
+      document.getElementById('bank-assign-id').value = id;
+      document.getElementById('bank-assign-comp').innerHTML = '<option value="">— 역량 선택 —</option>' +
+        comps.map(c => '<option value="' + escHtml(c.comp_id) + '">' + escHtml(c.comp_name) +
+          ' (' + escHtml(compTeamIds(c).map(t => teamName(t)).join(', ') || '-') + ')</option>').join('');
+      document.getElementById('bank-assign-team').innerHTML = '<option value="">— 조 선택 —</option>' +
+        teams.map(t => '<option value="' + escHtml(t.team_id) + '">' + escHtml(t.team_name) + '</option>').join('');
+      UI.modal('bank-assign-modal', true); return;
+    }
+    if (act === 'bank-assign-close') { UI.modal('bank-assign-modal', false); return; }
+    if (act === 'bank-assign-save') {
+      const iid = document.getElementById('bank-assign-id').value;
+      const compId = document.getElementById('bank-assign-comp').value;
+      const teamId = document.getElementById('bank-assign-team').value;
+      if (!compId) { UI.toast('역량을 선택하세요.', 'warning'); return; }
+      if (!teamId) { UI.toast('조를 선택하세요.', 'warning'); return; }
+      UI.showLoading('편입 중...');
+      const ok = await API.assignBankItem(iid, compId, teamId);
+      UI.hideLoading();
+      if (ok) { UI.toast('역량·조에 편입되었습니다.', 'success'); UI.modal('bank-assign-modal', false); renderBankTab(); }
+      else UI.toast('편입 실패', 'error');
+      return;
+    }
+  });
+  document.getElementById('bank-assign-comp') &&
+  document.getElementById('bank-assign-comp').addEventListener('change', (e) => {
+    const c = (window._bankComps || []).find(x => x.comp_id === e.target.value);
+    const tsel = document.getElementById('bank-assign-team');
+    if (c && tsel) { const tids = compTeamIds(c); tsel.value = (tids.length === 1) ? tids[0] : ''; }
   });
 
   loadTeams();

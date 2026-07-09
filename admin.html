@@ -180,6 +180,20 @@
   <div class="modal-footer"><button class="btn btn-secondary" data-act="bank-preview-close">닫기</button></div>
 </div></div>
 
+<!-- 문제은행 재지정 모달 -->
+<div id="bank-assign-modal" class="modal-backdrop" style="display:none;"><div class="modal" style="max-width:440px;">
+  <div class="modal-header"><h2 class="modal-title">역량·조 재지정</h2></div>
+  <div class="modal-body">
+    <input type="hidden" id="bank-assign-id" />
+    <label class="form-label">역량</label>
+    <select class="form-control form-select" id="bank-assign-comp"></select>
+    <label class="form-label" style="margin-top:10px;">조</label>
+    <select class="form-control form-select" id="bank-assign-team"></select>
+  </div>
+  <div class="modal-footer"><button class="btn btn-secondary" data-act="bank-assign-close">취소</button>
+    <button class="btn btn-primary" data-act="bank-assign-save">편입</button></div>
+</div></div>
+
 <script src="js/lib/supabase.js"></script>
 <script src="js/config.js"></script><script src="js/core.js"></script><script src="js/comp-core.js"></script><script src="js/bank-core.js"></script>
 <script src="js/session.js"></script><script src="js/api.js"></script>

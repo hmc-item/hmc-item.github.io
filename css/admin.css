@@ -1063,7 +1063,7 @@
 .assign-row + .assign-row { border-top: 1px solid var(--border); }
 .assign-chk { flex: 1; display: flex; align-items: center; gap: 6px; cursor: pointer; }
 .assign-target { width: 90px; flex: none; }
-.th-teams-list { display:flex; flex-direction:column; gap:8px; padding:4px 0; }
-.th-team-row { display:flex; align-items:center; gap:10px; padding:8px 4px; border-bottom:1px solid var(--border); }
+.th-teams-list { display:flex; flex-direction:column; gap:10px; padding:20px 28px 24px; max-height:60vh; overflow-y:auto; }
+.th-team-row { display:flex; align-items:center; gap:12px; padding:12px 14px; border:1px solid var(--border); border-radius:8px; }
 .th-team-name { font-weight:600; flex:1; }
-.th-team-stat { font-size:12px; color:var(--text-muted); }
+.th-team-stat { font-size:13px; color:var(--text-muted); white-space:nowrap; }

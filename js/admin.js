@@ -68,6 +68,7 @@
     if (t.dataset.tab === 'notices') window.renderNotices && window.renderNotices();
     if (t.dataset.tab === 'help') window.renderHelpTab && window.renderHelpTab();
     if (t.dataset.tab === 'import') window.renderImportTab && window.renderImportTab();
+    if (t.dataset.tab === 'bank') window.renderBankTab && window.renderBankTab();
   });
 
   // ---- 조 관리 ----
@@ -575,6 +576,38 @@
   document.addEventListener('click', (e) => {
     if (e.target && e.target.id === 'imp-run') _impRun();
   });
+
+  // ---- 📚 문제은행 ----
+  async function renderBankTab() {
+    if (!window._adminTeams) await loadTeams();
+    const box = document.getElementById('bank-list');
+    box.innerHTML = '<p class="table-empty">불러오는 중…</p>';
+    document.getElementById('bank-upload-preview').innerHTML = '';
+    const [rows, comps] = await Promise.all([API.getBankItems(), API.getCompetencies()]);
+    window._bankRows = rows; window._bankComps = comps;
+    document.getElementById('bank-count').textContent = '총 ' + rows.length + '개';
+    if (!rows.length) { box.innerHTML = '<p class="table-empty">문제은행이 비어 있습니다.</p>'; return; }
+    box.innerHTML = '<table class="admin-table"><thead><tr><th>No</th><th>유형</th><th>급수</th><th>문항</th><th>원래 역량</th><th>조</th><th>관리</th></tr></thead><tbody>' +
+      rows.map((it, i) => {
+        const q = it.question || '';
+        const orig = it.comp_id
+          ? '<span style="color:var(--danger,#c0392b);">삭제된 역량(' + escHtml(String(it.comp_id).slice(-6)) + ')</span>'
+          : '<span style="color:var(--text-secondary);">미배정</span>';
+        return '<tr>' +
+          '<td>' + (i + 1) + '</td>' +
+          '<td>' + (CONST.TYPES[it.item_type] || '-') + '</td>' +
+          '<td>' + escHtml(it.grade || '-') + '</td>' +
+          '<td>' + escHtml(q.slice(0, 40)) + (q.length > 40 ? '…' : '') + '</td>' +
+          '<td>' + orig + '</td>' +
+          '<td>' + escHtml(it.team_id ? teamName(it.team_id) : '-') + '</td>' +
+          '<td class="td-actions">' +
+            '<button class="btn btn-secondary btn-sm" data-act="bank-preview" data-id="' + escHtml(it.item_id) + '">미리보기</button> ' +
+            '<button class="btn btn-primary btn-sm" data-act="bank-assign" data-id="' + escHtml(it.item_id) + '">재지정</button> ' +
+            '<button class="btn btn-danger btn-sm" data-act="bank-del" data-id="' + escHtml(it.item_id) + '">삭제</button>' +
+          '</td></tr>';
+      }).join('') + '</tbody></table>';
+  }
+  window.renderBankTab = renderBankTab;
 
   loadTeams();
 })();

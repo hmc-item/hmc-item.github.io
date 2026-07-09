@@ -14,6 +14,7 @@
     <button class="admin-tab" data-tab="notices">📢 공지 관리</button>
     <button class="admin-tab" data-tab="help">❓ 사용법 관리</button>
     <button class="admin-tab" data-tab="import">🔗 자동화 문항 가져오기</button>
+    <button class="admin-tab" data-tab="bank">📚 문제은행</button>
   </div>
 
   <div class="tab-content active" id="tab-teams"><div class="card">
@@ -88,6 +89,22 @@
         <button class="btn btn-primary" id="imp-run" disabled>선택 그룹 저장</button>
       </div>
       <div id="imp-result" style="margin-top:16px;"></div>
+    </div>
+  </div></div>
+
+  <div class="tab-content" id="tab-bank"><div class="card">
+    <div class="card-header"><span class="card-title">📚 문제은행 (역량 미연결 문항)</span></div>
+    <div class="card-body">
+      <p class="help-edit-tip">현존 역량에 연결되지 않은 문항(삭제된 역량의 고아 문항 + 미배정 보관 문항)입니다. 관리자만 볼 수 있습니다.</p>
+      <div class="bank-actionbar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0;">
+        <b id="bank-count">총 0개</b>
+        <span style="flex:1;"></span>
+        <button class="btn btn-secondary" id="bank-dlall">📥 목록 다운로드</button>
+        <label class="btn btn-secondary" for="bank-upload-file">⬆️ 은행에 직접 업로드</label>
+        <input type="file" id="bank-upload-file" accept=".xlsx,.xls,.csv" style="display:none;" />
+      </div>
+      <div id="bank-upload-preview"></div>
+      <div id="bank-list" class="table-wrap"></div>
     </div>
   </div></div>
 </div>

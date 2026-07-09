@@ -1,4 +1,5 @@
 .th-head { margin-bottom: 20px; }
+.btn-back { background: var(--surface); border: 1.5px solid var(--border); padding: 8px 16px; border-radius: var(--radius-sm); font-weight: 600; color: var(--text-secondary); cursor: pointer; margin-bottom: 12px; }
 .th-crumb { font-size: 13px; color: var(--text-secondary, #888); margin-bottom: 4px; }
 .th-title-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .th-title { font-size: 22px; margin: 0; }

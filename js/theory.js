@@ -106,6 +106,7 @@
   document.body.addEventListener('click', async (e) => {
     const b = e.target.closest('[data-act]'); if (!b) return;
     const act = b.dataset.act, kind = b.dataset.kind, id = b.dataset.id;
+    if (act === 'back') { history.back(); return; }
     if (!ctx.canEdit && act !== 'noop') return;
 
     if (act === 'up') move(kind, id, findIdx(kind, id) - 1);

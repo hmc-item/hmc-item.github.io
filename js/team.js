@@ -21,9 +21,9 @@
         '<span class="comp-rate' + (over ? ' over' : '') + '">' + r + '%' + (over ? ' 초과 ✅' : '') + '</span></div>' +
         '<div class="comp-bar"><div class="comp-bar-fill" style="width:' + Math.min(r, 100) + '%"></div></div></div>' +
       '<div class="comp-go">' + (mine ? '✏️ 문항 작성 →' : '👁 읽기 전용 →') + '</div>' +
-      (mine ? '<button class="btn ' + (c.dev_done ? 'btn-primary' : 'btn-secondary') +
-        ' btn-sm th-open" data-comp="' + escHtml(c.comp_id) + '" data-done="' + (c.dev_done ? 1 : 0) +
-        '" style="margin-top:8px;width:100%;">📘 이론서 개발' + (c.dev_done ? '' : ' 🔒') + '</button>' : '') +
+      (mine ? (function () { const done = isDevDone(c, s.team_id); return '<button class="btn ' + (done ? 'btn-primary' : 'btn-secondary') +
+        ' btn-sm th-open" data-comp="' + escHtml(c.comp_id) + '" data-done="' + (done ? 1 : 0) +
+        '" style="margin-top:8px;width:100%;">📘 이론서 개발' + (done ? '' : ' 🔒') + '</button>'; })() : '') +
       '</div>';
   }
 
@@ -84,7 +84,7 @@
     if (th) {
       e.stopPropagation();
       if (th.dataset.done === '1') {
-        window.location.href = 'theory.html?comp=' + encodeURIComponent(th.dataset.comp);
+        window.location.href = 'theory.html?comp=' + encodeURIComponent(th.dataset.comp) + '&team=' + encodeURIComponent(s.team_id);
       } else {
         UI.toast('문항 개발 완료 필요 — items 화면에서 "문항개발 완료"를 체크하세요.', 'warning');
       }

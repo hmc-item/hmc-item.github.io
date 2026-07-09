@@ -602,7 +602,8 @@ const CONST = {
   GRADES    : ['기능사', '산업기사', '기사'],
   GRADE_TO_DIFFICULTY: { '기능사': 1, '산업기사': 2, '기사': 3 },
   GRADE_TO_ITEMGRADE: { '기능사': '3급', '산업기사': '2급', '기사': '1급' },  // 샘플 자격등급→문항 급수 기본값(샘플 차용 프리필용)
-  DEFAULT_QUAL_NAME: '현대엔지비 직접개발'
+  DEFAULT_QUAL_NAME: '현대엔지비 직접개발',
+  THEORY_MIN_ITEMS: 10   // 이론서 생성 최소 문항수(방어선; 주 게이트는 dev_done)
 };
 window.CONST = CONST;
 </script><script>// ===== Supabase client =====
@@ -723,6 +724,45 @@ const UI = (() => {
   return { showLoading, hideLoading, toast, modal, confirm };
 })();
 window.UI = UI;
+</script><script>// item-dev/js/comp-core.js — 역량 조 배정 순수 헬퍼 (window + module.exports 이중 노출)
+(function () {
+  var DEFAULT = (typeof CONST !== 'undefined' && CONST.DEFAULT_TARGET) || 50;
+
+  function compAssignments(comp) {
+    if (!comp) return [];
+    var a = comp.assignments;
+    if (typeof a === 'string') { try { a = JSON.parse(a); } catch (e) { a = null; } }
+    if (Array.isArray(a) && a.length) {
+      var out = [];
+      for (var i = 0; i < a.length; i++) {
+        var x = a[i];
+        if (x && x.team_id) {
+          out.push({ team_id: x.team_id, target_count: (x.target_count != null ? Number(x.target_count) : DEFAULT) });
+        }
+      }
+      return out;
+    }
+    if (comp.team_id) {  // 구 데이터 폴백
+      return [{ team_id: comp.team_id, target_count: (comp.target_count != null ? Number(comp.target_count) : DEFAULT) }];
+    }
+    return [];
+  }
+  function assignmentFor(comp, teamId) {
+    var list = compAssignments(comp);
+    for (var i = 0; i < list.length; i++) if (list[i].team_id === teamId) return list[i];
+    return null;
+  }
+  function compTeamIds(comp) {
+    return compAssignments(comp).map(function (x) { return x.team_id; });
+  }
+  function compTotalTarget(comp) {
+    return compAssignments(comp).reduce(function (a, x) { return a + (Number(x.target_count) || 0); }, 0);
+  }
+
+  var api = { compAssignments: compAssignments, assignmentFor: assignmentFor, compTeamIds: compTeamIds, compTotalTarget: compTotalTarget };
+  if (typeof window !== 'undefined') for (var k in api) window[k] = api[k];
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})();
 </script>
 <script>const Session = (() => {
   const KEY = 'itemdev_session';
@@ -737,7 +777,7 @@ window.UI = UI;
   const HELP_TITLE = { sme: 'SME 사용법 — 워크샵 진행 순서', coach: '교수(코치) 사용법', admin: '관리자 사용법' };
   const DEFAULT_HELP = {
     sme: [
-      '진입 — 역할에서 SME를 선택하고 담당 조(직무명)·분반을 고릅니다. 비밀번호는 없습니다.',
+      '진입 — 역할에서 SME를 선택하고 안내받은 비밀번호를 입력한 뒤 담당 조(직무명)·분반을 고릅니다.',
       '공지 확인 — 화면 상단 공지사항(공통 + 우리 조)을 확인합니다. 고정 공지를 먼저 봅니다.',
       '역량 선택 — 우리 조에 할당된 역량 카드를 클릭해 문항 개발 화면으로 들어갑니다.',
       '문항 개발(생성형 AI) — A) 샘플 문항 뱅크에서 관련 샘플을 다운로드해 AI로 우리 직무에 맞게 변형·확장  B) 본인 지식·내부 자료를 AI에 전달해 신규 문항 생성. (AI 프롬프트 문구는 워크샵에서 안내)',
@@ -860,8 +900,9 @@ window.DEFAULT_HELP = Session.DEFAULT_HELP;
     const id = generateId('c');
     const ok = await saveRow('competencies', null, null, {
       id, comp_id: id, comp_name: b.comp_name, category: b.category || null,
-      description: b.description || null, team_id: b.team_id || null,
-      target_count: b.target_count != null ? b.target_count : CONST.DEFAULT_TARGET,
+      description: b.description || null,
+      team_id: null, target_count: null,
+      assignments: Array.isArray(b.assignments) ? b.assignments : [],
       order_index: b.order_index || 0
     });
     return ok ? { comp_id: id } : null;
@@ -874,7 +915,8 @@ window.DEFAULT_HELP = Session.DEFAULT_HELP;
     return saveRow('competencies', 'comp_id', b.comp_id, {
       id: cur.id, comp_id: b.comp_id, comp_name: pick('comp_name'),
       category: pick('category'), description: pick('description'),
-      team_id: pick('team_id'), target_count: pick('target_count'),
+      team_id: null, target_count: null,
+      assignments: (b.assignments !== undefined ? (Array.isArray(b.assignments) ? b.assignments : []) : (cur.assignments || [])),
       order_index: pick('order_index'), created_at: cur.created_at
     });
   }
@@ -894,8 +936,10 @@ window.DEFAULT_HELP = Session.DEFAULT_HELP;
     if (error) { console.error('[getItems]', error); return []; }
     return (data || []).sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
   }
-  async function getItemCounts() {
-    const { data, error } = await DB.from('items').select('comp_id');
+  async function getItemCounts(teamId) {
+    let q = DB.from('items').select('comp_id');
+    if (teamId) q = q.eq('team_id', teamId);
+    const { data, error } = await q;
     if (error) { console.error('[getItemCounts]', error); return {}; }
     const m = {};
     (data || []).forEach(r => { m[r.comp_id] = (m[r.comp_id] || 0) + 1; });
@@ -904,7 +948,7 @@ window.DEFAULT_HELP = Session.DEFAULT_HELP;
   function normItem(b, idOverride) {
     const isMcq = b.item_type === 'mcq';
     return {
-      item_id: idOverride, comp_id: b.comp_id, team_id: b.team_id,
+      item_id: idOverride, comp_id: b.comp_id || null, team_id: b.team_id || null,
       item_type: b.item_type, grade: b.grade || null, bloom: b.bloom || null,
       question: b.question || '',
       option1: isMcq ? (b.option1 || '') : null,
@@ -935,6 +979,39 @@ window.DEFAULT_HELP = Session.DEFAULT_HELP;
     const { error } = await DB.from('items').delete().eq('item_id', itemId);
     if (error) { console.error('[deleteItem]', error); return false; }
     return true;
+  }
+
+  // ===== 문제은행(Item Bank) — 역량 미연결 문항 =====
+  async function getItem(itemId) {
+    const { data } = await DB.from('items').select('*').eq('item_id', itemId);
+    return (data && data[0]) || null;
+  }
+  async function getBankItems() {
+    const [items, comps] = await Promise.all([getItems({}), getCompetencies()]);
+    return filterBankItems(items, comps);
+  }
+  async function saveBankItem(b) {
+    if (!b.item_type || !b.question) return null;
+    const id = generateId('it');
+    const row = normItem(Object.assign({}, b, { comp_id: null, team_id: null }), id);
+    row.created_at = new Date().toISOString();
+    const ok = await saveRow('items', null, null, row);
+    return ok ? { item_id: id } : null;
+  }
+  // 주의: getItem은 identity 컬럼 id를 포함하므로 raw row를 그대로 saveRow에 넘기면
+  // INSERT가 실패(generated always as identity)하고, DELETE는 이미 수행돼 데이터가 소실된다.
+  // saveItem과 동일하게 normItem으로 id 없는 새 행을 재구성한다.
+  async function moveItemToBank(itemId) {
+    const cur = await getItem(itemId); if (!cur) return false;
+    const row = normItem(Object.assign({}, cur, { comp_id: null, team_id: null }), itemId);
+    row.created_at = cur.created_at;
+    return await saveRow('items', 'item_id', itemId, row);
+  }
+  async function assignBankItem(itemId, comp_id, team_id) {
+    const cur = await getItem(itemId); if (!cur) return false;
+    const row = normItem(Object.assign({}, cur, { comp_id: comp_id, team_id: team_id }), itemId);
+    row.created_at = cur.created_at;
+    return await saveRow('items', 'item_id', itemId, row);
   }
 
   // ===== Images =====
@@ -1126,6 +1203,32 @@ window.DEFAULT_HELP = Session.DEFAULT_HELP;
     return saveRow('help_texts', 'role', role, { role, body });
   }
 
+  // ===== Theory sections =====
+  async function getTheorySection(compId) {
+    const { data, error } = await DB.from('theory_sections')
+      .select('content,status,updated_at').eq('section_key', compId);
+    if (error) { console.error('[getTheorySection]', error); return null; }
+    return data && data[0] ? data[0] : null;
+  }
+  async function saveTheorySection(draft) {
+    if (!draft || !draft.sectionKey) return null;
+    const id = 'ths_' + draft.sectionKey;
+    const row = {
+      id, section_key: draft.sectionKey,
+      subject: draft.subject || null, section_title: draft.sectionTitle || null,
+      content: draft, status: draft.status || 'draft',
+      updated_at: new Date().toISOString(),
+    };
+    const ok = await saveRow('theory_sections', 'section_key', draft.sectionKey, row);
+    return ok ? { section_key: draft.sectionKey } : null;
+  }
+  async function setDevDone(compId, v) {
+    const { data } = await DB.from('competencies').select('*').eq('comp_id', compId);
+    if (!data || !data.length) return false;
+    const cur = data[0];
+    return saveRow('competencies', 'comp_id', compId, Object.assign({}, cur, { dev_done: !!v }));
+  }
+
   // ===== Comments =====
   async function getComments(p) {
     p = p || {}; let q = DB.from('comments').select('*');
@@ -1181,7 +1284,8 @@ window.DEFAULT_HELP = Session.DEFAULT_HELP;
   return {
     getTeams, addTeam, updateTeam, deleteTeam,
     getCompetencies, addCompetency, updateCompetency, deleteCompetency,
-    getItems, getItemCounts, saveItem, deleteItem,
+    getItems, getItemCounts, saveItem, deleteItem, getItem,
+    getBankItems, saveBankItem, moveItemToBank, assignBankItem,
     getImages, getImagesByItems, uploadImage, deleteImage, publicUrl,
     getComments, getCommentsByItems, getUnresolvedCounts,
     addComment, updateComment, setCommentResolved, deleteComment,
@@ -1190,6 +1294,7 @@ window.DEFAULT_HELP = Session.DEFAULT_HELP;
     copySampleImageToItem,
     getNotices, getNoticesForTeam, saveNotice, deleteNotice,
     getHelpTexts, getHelpText, saveHelpText,
+    getTheorySection, saveTheorySection, setDevDone,
     uploadErrorMessage: () => lastUploadError
   };
 })();
@@ -1204,9 +1309,7 @@ window.API = API;
     const t = Number(target) || 0; if (!t) return 0;
     return Math.round((Number(count) || 0) / t * 100);
   }
-  function card(c, counts, unresolved, mine) {
-    const cnt = counts[c.comp_id] || 0;
-    const target = c.target_count != null ? c.target_count : 50;
+  function card(c, cnt, target, unresolved, mine) {
     const r = rate(cnt, target);
     const over = r > 100;
     const unres = unresolved[c.comp_id] || 0;
@@ -1218,28 +1321,34 @@ window.API = API;
         '<span>' + cnt + ' / ' + target + '</span>' +
         '<span class="comp-rate' + (over ? ' over' : '') + '">' + r + '%' + (over ? ' 초과 ✅' : '') + '</span></div>' +
         '<div class="comp-bar"><div class="comp-bar-fill" style="width:' + Math.min(r, 100) + '%"></div></div></div>' +
-      '<div class="comp-go">' + (mine ? '✏️ 문항 작성 →' : '👁 읽기 전용 →') + '</div></div>';
+      '<div class="comp-go">' + (mine ? '✏️ 문항 작성 →' : '👁 읽기 전용 →') + '</div>' +
+      (mine ? '<button class="btn ' + (c.dev_done ? 'btn-primary' : 'btn-secondary') +
+        ' btn-sm th-open" data-comp="' + escHtml(c.comp_id) + '" data-done="' + (c.dev_done ? 1 : 0) +
+        '" style="margin-top:8px;width:100%;">📘 이론서 개발' + (c.dev_done ? '' : ' 🔒') + '</button>' : '') +
+      '</div>';
   }
 
   async function load() {
     UI.showLoading('역량 불러오는 중...');
-    const [comps, counts] = await Promise.all([API.getCompetencies(), API.getItemCounts()]);
-    const unresolved = (API.getUnresolvedCounts ? await API.getUnresolvedCounts() : {}); // Task 13에서 연결
+    const [comps, myCounts, allCounts] = await Promise.all([
+      API.getCompetencies(), API.getItemCounts(s.team_id), API.getItemCounts()
+    ]);
+    const unresolved = (API.getUnresolvedCounts ? await API.getUnresolvedCounts() : {});
     UI.hideLoading();
 
-    const mine = comps.filter(c => c.team_id === s.team_id);
-    const others = comps.filter(c => c.team_id !== s.team_id);
+    const mine = comps.filter(c => compTeamIds(c).indexOf(s.team_id) >= 0);
+    const others = comps.filter(c => compTeamIds(c).indexOf(s.team_id) < 0);
 
-    // 전체 달성률(우리 조)
-    const totCnt = mine.reduce((a, c) => a + (counts[c.comp_id] || 0), 0);
-    const totTgt = mine.reduce((a, c) => a + (Number(c.target_count) || 0), 0);
+    // 전체 달성률(우리 조): 내 조 문항수 / 내 조 배정 목표 합
+    const totCnt = mine.reduce((a, c) => a + (myCounts[c.comp_id] || 0), 0);
+    const totTgt = mine.reduce((a, c) => { const asg = assignmentFor(c, s.team_id); return a + (asg ? Number(asg.target_count) || 0 : 0); }, 0);
     document.getElementById('team-rate').textContent = rate(totCnt, totTgt) + '%';
 
     document.getElementById('comp-grid').innerHTML = mine.length
-      ? mine.map(c => card(c, counts, unresolved, true)).join('')
+      ? mine.map(c => { const asg = assignmentFor(c, s.team_id); return card(c, myCounts[c.comp_id] || 0, asg ? asg.target_count : 0, unresolved, true); }).join('')
       : '<div class="empty-state">할당된 역량이 없습니다. 관리자에게 문의하세요.</div>';
     document.getElementById('other-grid').innerHTML = others.length
-      ? others.map(c => card(c, counts, unresolved, false)).join('')
+      ? others.map(c => card(c, allCounts[c.comp_id] || 0, compTotalTarget(c), unresolved, false)).join('')
       : '<div class="empty-state">다른 조 역량이 없습니다.</div>';
   }
 
@@ -1272,6 +1381,16 @@ window.API = API;
   })();
 
   document.querySelector('.page-wrapper').addEventListener('click', (e) => {
+    const th = e.target.closest('.th-open');
+    if (th) {
+      e.stopPropagation();
+      if (th.dataset.done === '1') {
+        window.location.href = 'theory.html?comp=' + encodeURIComponent(th.dataset.comp);
+      } else {
+        UI.toast('문항 개발 완료 필요 — items 화면에서 "문항개발 완료"를 체크하세요.', 'warning');
+      }
+      return;
+    }
     const card = e.target.closest('.comp-card'); if (!card) return;
     const mine = card.dataset.mine === '1';
     window.location.href = 'items.html?comp_id=' + encodeURIComponent(card.dataset.comp) + (mine ? '&mine=1' : '');

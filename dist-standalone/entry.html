@@ -539,6 +539,8 @@ textarea.form-control {
 .class-btn:hover { border-color:var(--hmc-blue); box-shadow:var(--shadow-md); transform:translateY(-2px); }
 .class-btn.active { background:var(--hmc-blue); color:#fff; }
 @media (max-width:480px){ .role-grid{ grid-template-columns:1fr; } }
+.auth-gate-error { color:#c0392b; font-size:13px; margin-top:8px; min-height:18px; }
+#auth-gate-input { width:100%; }
 </style></head>
 <body><div class="entry-bg"><div class="entry-container">
   <div class="entry-logo-wrap">
@@ -600,7 +602,8 @@ const CONST = {
   GRADES    : ['기능사', '산업기사', '기사'],
   GRADE_TO_DIFFICULTY: { '기능사': 1, '산업기사': 2, '기사': 3 },
   GRADE_TO_ITEMGRADE: { '기능사': '3급', '산업기사': '2급', '기사': '1급' },  // 샘플 자격등급→문항 급수 기본값(샘플 차용 프리필용)
-  DEFAULT_QUAL_NAME: '현대엔지비 직접개발'
+  DEFAULT_QUAL_NAME: '현대엔지비 직접개발',
+  THEORY_MIN_ITEMS: 10   // 이론서 생성 최소 문항수(방어선; 주 게이트는 dev_done)
 };
 window.CONST = CONST;
 </script><script>// ===== Supabase client =====
@@ -735,7 +738,7 @@ window.UI = UI;
   const HELP_TITLE = { sme: 'SME 사용법 — 워크샵 진행 순서', coach: '교수(코치) 사용법', admin: '관리자 사용법' };
   const DEFAULT_HELP = {
     sme: [
-      '진입 — 역할에서 SME를 선택하고 담당 조(직무명)·분반을 고릅니다. 비밀번호는 없습니다.',
+      '진입 — 역할에서 SME를 선택하고 안내받은 비밀번호를 입력한 뒤 담당 조(직무명)·분반을 고릅니다.',
       '공지 확인 — 화면 상단 공지사항(공통 + 우리 조)을 확인합니다. 고정 공지를 먼저 봅니다.',
       '역량 선택 — 우리 조에 할당된 역량 카드를 클릭해 문항 개발 화면으로 들어갑니다.',
       '문항 개발(생성형 AI) — A) 샘플 문항 뱅크에서 관련 샘플을 다운로드해 AI로 우리 직무에 맞게 변형·확장  B) 본인 지식·내부 자료를 AI에 전달해 신규 문항 생성. (AI 프롬프트 문구는 워크샵에서 안내)',
@@ -818,16 +821,178 @@ window.UI = UI;
 window.Session = Session;
 window.renderHelpBody = Session.renderHelpBody;
 window.DEFAULT_HELP = Session.DEFAULT_HELP;
-</script><script>(function () {
+</script>
+<script>// auth-config.js
+// 역할별 진입 비밀번호 (SHA-256 해시 저장 — 평문은 커밋하지 않음)
+// 해시 재생성: 브라우저 콘솔에서 아래 sha256() 실행 후 값 교체
+//   async function sha256(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+
+const ROLE_AUTH = {
+  "SME":    { hash: "8a37507d1a25cefb8125cb193ad6170aaa7c15c19a2b63769b63df4b64dde9c1" },
+  "교수":   { hash: "e725458e803ce5bbf51659c40fc7b01f749e9e1303039017c2d51123d686f456" },
+  "관리자": { hash: "ac9689e2272427085e35b9d3e3e8bed88cb3434828b43b86fc0596cad4c6e270" },
+};
+
+if (typeof window !== 'undefined') window.ROLE_AUTH = ROLE_AUTH;
+if (typeof module !== 'undefined' && module.exports) module.exports = { ROLE_AUTH };
+</script><script>// 순수 JS SHA-256 (의존성 0, https·file:// 양쪽 동작). 입력은 UTF-8 바이트로 해싱.
+function sha256Hex(str) {
+  // UTF-8 바이트열(각 char 0~255)로 변환 — TextEncoder().encode()와 동일 바이트
+  const bytes = unescape(encodeURIComponent(String(str == null ? '' : str)));
+  function rr(v, a) { return (v >>> a) | (v << (32 - a)); }
+  const maxWord = Math.pow(2, 32);
+  let result = '';
+  const words = [];
+  const bitLen = bytes.length * 8;
+
+  let hash = sha256Hex._h;
+  let k = sha256Hex._k;
+  if (!hash) {
+    hash = sha256Hex._h = [];
+    k = sha256Hex._k = [];
+    let n = 0, cand = 2;
+    const composite = {};
+    for (; n < 64; cand++) {
+      if (!composite[cand]) {
+        for (let i = 0; i < 313; i += cand) composite[i] = cand;
+        hash[n] = (Math.pow(cand, 0.5) * maxWord) | 0;
+        k[n++] = (Math.pow(cand, 1 / 3) * maxWord) | 0;
+      }
+    }
+  }
+
+  let ascii = bytes + '\x80';
+  while (ascii.length % 64 - 56) ascii += '\x00';
+  for (let i = 0; i < ascii.length; i++) {
+    const j = ascii.charCodeAt(i);
+    words[i >> 2] |= j << ((3 - i) % 4) * 8;
+  }
+  words[words.length] = (bitLen / maxWord) | 0;
+  words[words.length] = bitLen;
+
+  hash = hash.slice(0);   // 초기 8개 해시값 복사(재호출 안전)
+  for (let j = 0; j < words.length;) {
+    const w = words.slice(j, j += 16);
+    const oldHash = hash;
+    hash = hash.slice(0, 8);
+    for (let i = 0; i < 64; i++) {
+      const w15 = w[i - 15], w2 = w[i - 2];
+      const a = hash[0], e = hash[4];
+      const t1 = hash[7]
+        + (rr(e, 6) ^ rr(e, 11) ^ rr(e, 25))
+        + ((e & hash[5]) ^ ((~e) & hash[6]))
+        + k[i]
+        + (w[i] = (i < 16) ? (w[i] | 0) : (
+            (w[i - 16]
+              + (rr(w15, 7) ^ rr(w15, 18) ^ (w15 >>> 3))
+              + w[i - 7]
+              + (rr(w2, 17) ^ rr(w2, 19) ^ (w2 >>> 10))) | 0));
+      const t2 = (rr(a, 2) ^ rr(a, 13) ^ rr(a, 22))
+        + ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
+      hash = [(t1 + t2) | 0].concat(hash);
+      hash[4] = (hash[4] + t1) | 0;
+    }
+    for (let i = 0; i < 8; i++) hash[i] = (hash[i] + oldHash[i]) | 0;
+  }
+
+  for (let i = 0; i < 8; i++) {
+    for (let j = 3; j + 1; j--) {
+      const b = (hash[i] >> (j * 8)) & 255;
+      result += (b < 16 ? '0' : '') + b.toString(16);
+    }
+  }
+  return result;
+}
+
+const AuthGate = (() => {
+  const UNLOCK_KEY = 'itemdev_unlocked';
+  const LABEL = { 'SME': 'SME', '교수': '교수', '관리자': '관리자' };
+
+  function store() { try { return JSON.parse(sessionStorage.getItem(UNLOCK_KEY)) || {}; } catch (e) { return {}; } }
+  function isUnlocked(key) { return store()[key] === true; }
+  function setUnlocked(key) { const s = store(); s[key] = true; sessionStorage.setItem(UNLOCK_KEY, JSON.stringify(s)); }
+
+  function buildModal() {
+    let el = document.getElementById('auth-gate-modal');
+    if (el) return el;
+    el = document.createElement('div');
+    el.id = 'auth-gate-modal';
+    el.className = 'modal-backdrop';
+    el.innerHTML =
+      '<div class="modal" style="max-width:380px;"><div class="modal-header">' +
+        '<h2 class="modal-title" id="auth-gate-title"></h2></div>' +
+      '<div class="modal-body">' +
+        '<input type="password" id="auth-gate-input" class="form-control" ' +
+          'autocomplete="off" placeholder="비밀번호" aria-labelledby="auth-gate-title">' +
+        '<p id="auth-gate-error" class="auth-gate-error" aria-live="polite"></p>' +
+      '</div><div class="modal-footer">' +
+        '<button class="btn btn-secondary" data-a="cancel">취소</button>' +
+        '<button class="btn btn-primary" data-a="ok">확인</button>' +
+      '</div></div>';
+    document.body.appendChild(el);
+    return el;
+  }
+
+  function require(authKey) {
+    return new Promise((resolve) => {
+      if (!window.ROLE_AUTH || !ROLE_AUTH[authKey]) {
+        UI.toast('인증 설정을 불러오지 못했습니다. 새로고침 후 다시 시도하세요.', 'error');
+        resolve(false); return;
+      }
+      if (isUnlocked(authKey)) { resolve(true); return; }
+
+      const el = buildModal();
+      const titleEl = document.getElementById('auth-gate-title');
+      const inputEl = document.getElementById('auth-gate-input');
+      const errEl = document.getElementById('auth-gate-error');
+      titleEl.textContent = (LABEL[authKey] || authKey) + ' 비밀번호 입력';
+      inputEl.value = '';
+      errEl.textContent = '';
+      el.style.display = 'flex';
+      setTimeout(() => inputEl.focus(), 0);
+
+      function close(val) {
+        el.style.display = 'none';
+        el.onclick = null; inputEl.onkeydown = null;
+        resolve(val);
+      }
+      function submit() {
+        const v = inputEl.value;
+        if (!v) { errEl.textContent = '비밀번호를 입력하세요'; return; }
+        if (sha256Hex(v) === ROLE_AUTH[authKey].hash) { setUnlocked(authKey); close(true); }
+        else { errEl.textContent = '비밀번호가 올바르지 않습니다'; inputEl.select(); }
+      }
+      el.onclick = (e) => {
+        const b = e.target.closest('[data-a]');
+        if (b && b.dataset.a === 'ok') { submit(); return; }
+        if ((b && b.dataset.a === 'cancel') || e.target === el) close(false);
+      };
+      inputEl.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); submit(); } };
+    });
+  }
+
+  return { require, isUnlocked };
+})();
+
+if (typeof window !== 'undefined') { window.sha256Hex = sha256Hex; window.AuthGate = AuthGate; }
+if (typeof module !== 'undefined' && module.exports) module.exports = { sha256Hex };
+</script>
+<script>(function () {
   const grid = document.querySelector('.role-grid');
   const classPick = document.getElementById('class-pick');
   const teamPick = document.getElementById('team-pick');
   const teamSelect = document.getElementById('team-select');
   let allTeams = [];
 
+  const ROLE_KEY = { sme: 'SME', coach: '교수', admin: '관리자' };
+
   grid.addEventListener('click', async (e) => {
     const b = e.target.closest('.role-btn'); if (!b) return;
     const role = b.dataset.role;
+
+    const ok = await AuthGate.require(ROLE_KEY[role]);
+    if (!ok) return;   // 취소·인증 실패 시 역할 선택 화면 유지
+
     if (role === 'coach') { Session.set({ role: 'coach' }); window.location.href = 'review.html'; return; }
     if (role === 'admin') { Session.set({ role: 'admin' }); window.location.href = 'admin.html'; return; }
     // SME → 분반 선택 노출

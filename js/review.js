@@ -38,7 +38,9 @@
         '<span class="type-badge type-' + it.item_type + '">' + CONST.TYPES[it.item_type] + '</span>' +
         '<span class="diff-badge">' + escHtml(it.grade || '-') + '</span>' +
         '<span class="rev-comp">' + escHtml(compName(it.comp_id)) + '</span>' +
-      '</div></div>' +
+      '</div>' +
+      (s.role === 'admin' ? '<button class="btn btn-secondary btn-sm" data-act="mv-bank" data-id="' + escHtml(it.item_id) + '">🏦 은행으로</button>' : '') +
+      '</div>' +
       '<div class="item-q">' + escHtml(it.question) + '</div>' + body +
       (it.explanation ? '<div class="item-exp"><span class="field-label">해설</span>' + escHtml(it.explanation) + '</div>' : '') +
       commentBlock(it) + '</div>';
@@ -107,6 +109,15 @@
       if (!(await UI.confirm('코멘트를 삭제하시겠습니까?'))) return;
       UI.showLoading('삭제 중...'); const ok = await API.deleteComment(b.dataset.id); UI.hideLoading();
       if (ok) { UI.toast('삭제되었습니다.', 'success'); await loadItemsAndComments(); } else UI.toast('삭제 실패', 'error');
+    }
+    if (act === 'mv-bank') {
+      if (s.role !== 'admin') return;
+      if (!(await UI.confirm('이 문항을 문제은행으로 보낼까요? (역량·조 연결 해제)'))) return;
+      UI.showLoading('이동 중...');
+      const ok = await API.moveItemToBank(b.dataset.id);
+      UI.hideLoading();
+      if (ok) { UI.toast('문제은행으로 이동했습니다.', 'success'); await loadItemsAndComments(); }
+      else UI.toast('이동 실패', 'error');
     }
   });
   function findComment(id) {

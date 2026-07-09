@@ -99,7 +99,7 @@
     if (dw) {
       dw.style.display = ctx.canEdit ? 'inline-flex' : 'none';
       const chk = document.getElementById('devdone-chk');
-      if (chk) chk.checked = !!(comp && comp.dev_done);
+      if (chk) chk.checked = isDevDone(comp, s.team_id);
     }
     const list = filtered();
     document.getElementById('item-list').innerHTML = list.length
@@ -504,10 +504,17 @@
     }
     UI.showLoading('저장 중...');
     let ok = false;
-    try { ok = await API.setDevDone(compId, chk.checked); }
+    try { ok = await API.setDevDone(compId, s.team_id, chk.checked); }
     catch (err) { console.error('[setDevDone]', err); ok = false; }
     UI.hideLoading();
-    if (ok) { if (comp) comp.dev_done = chk.checked; UI.toast(chk.checked ? '문항개발 완료로 표시했습니다.' : '완료 표시를 해제했습니다.', 'success'); }
+    if (ok) {
+      if (comp) {
+        let arr = compDevDoneTeams(comp).filter(t => t !== s.team_id);
+        if (chk.checked) arr.push(s.team_id);
+        comp.dev_done_teams = arr;
+      }
+      UI.toast(chk.checked ? '문항개발 완료로 표시했습니다.' : '완료 표시를 해제했습니다.', 'success');
+    }
     else { chk.checked = !chk.checked; UI.toast('저장 실패 — 새로고침 후 다시 시도하세요.', 'error'); }
   });
 

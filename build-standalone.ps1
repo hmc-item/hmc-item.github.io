@@ -25,7 +25,7 @@ $jsEval = [System.Text.RegularExpressions.MatchEvaluator]{
   '<script>' + ($js -replace '(?i)</script', '<\/script') + '</script>'
 }
 
-$pages = 'entry','team','items','review','admin','samples'
+$pages = 'entry','team','items','review','admin','samples','theory'
 foreach($page in $pages){
   $html = [System.IO.File]::ReadAllText((Join-Path $root "$page.html"))
 

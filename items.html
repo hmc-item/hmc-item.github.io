@@ -21,10 +21,10 @@
     <div class="items-main">
       <div class="items-actionbar" id="actionbar">
         <button class="btn btn-primary btn-sm" data-act="add-item">+ 문항 추가</button>
-        <button class="btn btn-secondary btn-sm" data-act="open-upload">📥 엑셀 일괄 업로드</button>
+        <button class="btn btn-secondary btn-sm" data-act="open-upload">📤 엑셀 일괄 업로드</button>
         <button class="btn btn-secondary btn-sm" data-act="dl-template">📄 템플릿 다운로드</button>
         <button class="btn btn-secondary btn-sm" data-act="open-borrow">🧩 샘플에서 가져오기</button>
-        <button class="btn btn-secondary btn-sm" data-act="it-dl-all" id="it-dl-all-btn">📥 목록 다운로드</button>
+        <button class="btn btn-secondary btn-sm" data-act="it-dl-all" id="it-dl-all-btn">⬇️ 목록 다운로드</button>
         <span class="ab-spacer"></span>
         <select id="filter-type" class="form-control form-select ab-filter">
           <option value="">유형 전체</option><option value="mcq">객관식</option><option value="essay">서술형</option></select>
@@ -89,7 +89,7 @@
       <select id="bw-f-type" class="form-control form-select">
         <option value="">유형 전체</option><option value="mcq">객관식</option><option value="essay">서술형</option></select>
       <select id="bw-f-grade" class="form-control form-select"><option value="">자격등급 전체</option></select>
-      <button class="btn btn-secondary btn-sm" data-act="bw-dl-all" id="bw-dl-all-btn">📥 목록 다운로드</button>
+      <button class="btn btn-secondary btn-sm" data-act="bw-dl-all" id="bw-dl-all-btn">⬇️ 목록 다운로드</button>
     </div>
     <div id="bw-list" class="item-list"></div>
   </div>
@@ -114,7 +114,7 @@
 
 <!-- 문항 목록 다운로드 형식 모달 -->
 <div id="it-dlall-modal" class="modal-backdrop" style="display:none;"><div class="modal" style="max-width:420px;">
-  <div class="modal-header"><h2 class="modal-title">📥 문항 목록 다운로드</h2>
+  <div class="modal-header"><h2 class="modal-title">⬇️ 문항 목록 다운로드</h2>
     <button class="modal-close" data-act="it-dlall-close">✕</button></div>
   <div class="modal-body"><p class="tpl-desc">필터가 적용된 문항 <b id="it-dlall-count">0</b>건을 받을 형식을 선택하세요.</p>
     <div class="tpl-choice">
@@ -128,7 +128,7 @@
 
 <div id="upload-slot">
 <div id="upload-modal" class="modal-backdrop" style="display:none;"><div class="modal modal-lg">
-  <div class="modal-header"><h2 class="modal-title">📥 엑셀 일괄 업로드</h2>
+  <div class="modal-header"><h2 class="modal-title">📤 엑셀 일괄 업로드</h2>
     <button class="modal-close" data-act="upload-close">✕</button></div>
   <div class="modal-body">
     <div class="upload-guide">파일을 선택하면 미리보기와 검증 결과가 표시됩니다. 유효한 행만 저장됩니다.

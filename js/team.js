@@ -23,7 +23,7 @@
       '<div class="comp-go">' + (mine ? '✏️ 문항 작성 →' : '👁 읽기 전용 →') + '</div>' +
       (mine ? (function () { const done = isDevDone(c, s.team_id); return '<button class="btn ' + (done ? 'btn-primary' : 'btn-secondary') +
         ' btn-sm th-open" data-comp="' + escHtml(c.comp_id) + '" data-done="' + (done ? 1 : 0) +
-        '" style="margin-top:8px;width:100%;">📘 이론서 개발' + (done ? '' : ' 🔒') + '</button>'; })() : '') +
+        '" style="margin-top:8px;width:100%;">📘 이론서 개발</button>'; })() : '') +
       '</div>';
   }
 

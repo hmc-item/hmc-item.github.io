@@ -396,9 +396,9 @@ const API = (() => {
     return m;
   }
   async function getUnresolvedCounts() {
-    const { data, error } = await DB.from('comments').select('comp_id,is_resolved').eq('is_resolved', false);
+    const { data, error } = await DB.from('comments').select('comp_id,is_resolved,parent_id').eq('is_resolved', false);
     if (error) { console.error('[getUnresolvedCounts]', error); return {}; }
-    const m = {}; (data || []).forEach(c => { m[c.comp_id] = (m[c.comp_id] || 0) + 1; });
+    const m = {}; (data || []).forEach(c => { if (c.parent_id) return; m[c.comp_id] = (m[c.comp_id] || 0) + 1; });
     return m;
   }
   async function addComment(b) {
@@ -406,7 +406,8 @@ const API = (() => {
     const id = generateId('cm');
     const ok = await saveRow('comments', null, null, {
       comment_id: id, item_id: b.item_id, comp_id: b.comp_id || '',
-      author_role: b.author_role, content: b.content, is_resolved: false
+      author_role: b.author_role, content: b.content, is_resolved: false,
+      parent_id: b.parent_id || null
     });
     return ok ? { comment_id: id } : null;
   }
@@ -419,6 +420,7 @@ const API = (() => {
       author_role: cur.author_role,
       content: patch.content !== undefined ? patch.content : cur.content,
       is_resolved: patch.is_resolved !== undefined ? patch.is_resolved : cur.is_resolved,
+      parent_id: cur.parent_id || null,
       created_at: cur.created_at
     });
   }

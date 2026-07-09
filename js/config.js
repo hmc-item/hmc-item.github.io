@@ -7,7 +7,7 @@ const CONST = {
   TYPES     : { mcq: '객관식', essay: '서술형' },
   TYPE_FROM_LABEL: { '객관식': 'mcq', '서술형': 'essay' },
   ROLES     : { sme: 'sme', coach: 'coach', admin: 'admin' },
-  ROLE_LABEL: { coach: '교수', admin: '관리자' },
+  ROLE_LABEL: { coach: '교수', admin: '관리자', sme: 'SME' },
   AREAS     : ['question', 'option1', 'option2', 'option3', 'option4', 'explanation', 'model_answer'],
   AREA_LABEL: {
     question: '문항', option1: '보기1', option2: '보기2', option3: '보기3',

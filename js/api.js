@@ -342,9 +342,9 @@ const API = (() => {
   }
 
   // ===== Theory sections =====
-  async function getTheorySection(compId) {
+  async function getTheorySection(sectionKey) {   // sectionKey = comp_id::team_id
     const { data, error } = await DB.from('theory_sections')
-      .select('content,status,updated_at').eq('section_key', compId);
+      .select('content,status,updated_at').eq('section_key', sectionKey);
     if (error) { console.error('[getTheorySection]', error); return null; }
     return data && data[0] ? data[0] : null;
   }
@@ -360,11 +360,22 @@ const API = (() => {
     const ok = await saveRow('theory_sections', 'section_key', draft.sectionKey, row);
     return ok ? { section_key: draft.sectionKey } : null;
   }
-  async function setDevDone(compId, v) {
+  async function setDevDone(compId, teamId, v) {
     const { data } = await DB.from('competencies').select('*').eq('comp_id', compId);
     if (!data || !data.length) return false;
     const cur = data[0];
-    return saveRow('competencies', 'comp_id', compId, Object.assign({}, cur, { dev_done: !!v }));
+    let arr = cur.dev_done_teams;
+    if (typeof arr === 'string') { try { arr = JSON.parse(arr); } catch (e) { arr = []; } }
+    if (!Array.isArray(arr)) arr = [];
+    arr = arr.filter(t => t !== teamId);
+    if (v) arr.push(teamId);
+    return saveRow('competencies', 'comp_id', compId, Object.assign({}, cur, { dev_done_teams: arr }));
+  }
+  async function getItemCountsForComp(compId) {
+    const { data, error } = await DB.from('items').select('team_id').eq('comp_id', compId);
+    if (error) { console.error('[getItemCountsForComp]', error); return {}; }
+    const m = {}; (data || []).forEach(r => { if (r.team_id) m[r.team_id] = (m[r.team_id] || 0) + 1; });
+    return m;
   }
 
   // ===== Comments =====
@@ -432,7 +443,7 @@ const API = (() => {
     copySampleImageToItem,
     getNotices, getNoticesForTeam, saveNotice, deleteNotice,
     getHelpTexts, getHelpText, saveHelpText,
-    getTheorySection, saveTheorySection, setDevDone,
+    getTheorySection, saveTheorySection, setDevDone, getItemCountsForComp,
     uploadErrorMessage: () => lastUploadError
   };
 })();

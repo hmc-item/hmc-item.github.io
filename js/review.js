@@ -8,6 +8,17 @@
 
   function compName(id) { const c = comps.find(x => x.comp_id === id); return c ? c.comp_name : '-'; }
 
+  function teamClass(id) { const t = teams.find(x => x.team_id === id); return t ? t.class_no : null; }
+  function rebuildTeamOptions() {
+    const fcl = document.getElementById('rf-class').value;
+    const sel = document.getElementById('rf-team');
+    const prev = sel.value;
+    const list = fcl ? teams.filter(t => Number(t.class_no) === Number(fcl)) : teams;
+    sel.innerHTML = '<option value="">조 전체</option>' +
+      list.map(t => '<option value="' + escHtml(t.team_id) + '">' + escHtml(t.team_name) + '</option>').join('');
+    sel.value = (prev && list.some(t => t.team_id === prev)) ? prev : '';
+  }
+
   function commentBlock(it) {
     const list = commentMap[it.item_id] || [];
     const existing = list.map(c =>
@@ -47,15 +58,17 @@
   }
 
   function applyFilters() {
+    const fcl = document.getElementById('rf-class').value;
     const fc = document.getElementById('rf-comp').value;
     const ft = document.getElementById('rf-team').value;
     const fy = document.getElementById('rf-type').value;
     const fd = document.getElementById('rf-diff').value;
     const unres = document.getElementById('rf-unres').checked;
     let list = items.filter(i =>
+      (!fcl || Number(teamClass(i.team_id)) === Number(fcl)) &&
       (!fc || i.comp_id === fc) && (!ft || i.team_id === ft) &&
       (!fy || i.item_type === fy) && (!fd || String(i.grade || '') === fd));
-    if (unres) list = list.filter(i => (commentMap[i.item_id] || []).some(c => !c.is_resolved));
+    if (unres) list = list.filter(i => (commentMap[i.item_id] || []).some(c => !c.parent_id && !c.is_resolved));
     document.getElementById('review-list').innerHTML = list.length
       ? list.map((it, i) => itemCard(it, i)).join('')
       : '<div class="empty-state">조건에 맞는 문항이 없습니다.</div>';
@@ -101,6 +114,7 @@
       teams.map(t => '<option value="' + escHtml(t.team_id) + '">' + escHtml(t.team_name) + '</option>').join('');
     ['rf-comp','rf-team','rf-type','rf-diff'].forEach(id =>
       document.getElementById(id).addEventListener('change', applyFilters));
+    document.getElementById('rf-class').addEventListener('change', () => { rebuildTeamOptions(); applyFilters(); });
     document.getElementById('rf-unres').addEventListener('change', applyFilters);
     document.getElementById('rf-theory').addEventListener('click', async () => {
       const fc = document.getElementById('rf-comp').value;

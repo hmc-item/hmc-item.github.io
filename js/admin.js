@@ -609,5 +609,42 @@
   }
   window.renderBankTab = renderBankTab;
 
+  function bankItemById(id) { return (window._bankRows || []).find(x => x.item_id === id); }
+  function bankPreviewHtml(it) {
+    const esc = escHtml;
+    let body;
+    if (it.item_type === 'mcq') {
+      body = '<ol class="opt-list">' + [1,2,3,4].map(n =>
+        '<li class="' + (it.answer === n ? 'correct' : '') + '">' + esc(it['option' + n] || '') +
+        (it.answer === n ? ' <span class="ans-tag">정답</span>' : '') + '</li>').join('') + '</ol>';
+    } else {
+      body = '<div class="essay-model"><span class="field-label">모범답안</span>' + esc(it.model_answer || '-') + '</div>';
+    }
+    return '<div class="item-badges" style="margin-bottom:8px;">' +
+        '<span class="type-badge type-' + it.item_type + '">' + (CONST.TYPES[it.item_type] || '') + '</span> ' +
+        '<span class="diff-badge">' + esc(it.grade || '-') + '</span></div>' +
+      '<div class="item-q">' + esc(it.question || '') + '</div>' + body +
+      (it.explanation ? '<div class="item-exp"><span class="field-label">해설</span>' + esc(it.explanation) + '</div>' : '');
+  }
+  document.getElementById('tab-bank').addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    const act = b.dataset.act, id = b.dataset.id;
+    if (act === 'bank-preview-close') { UI.modal('bank-preview-modal', false); return; }
+    if (act === 'bank-preview') {
+      const it = bankItemById(id); if (!it) return;
+      document.getElementById('bank-preview-body').innerHTML = bankPreviewHtml(it);
+      UI.modal('bank-preview-modal', true); return;
+    }
+    if (act === 'bank-del') {
+      if (!await UI.confirm('이 문항을 영구 삭제할까요?')) return;
+      UI.showLoading('삭제 중...');
+      const ok = await API.deleteItem(id);
+      UI.hideLoading();
+      if (ok) { UI.toast('삭제되었습니다.', 'success'); renderBankTab(); }
+      else UI.toast('삭제 실패', 'error');
+      return;
+    }
+  });
+
   loadTeams();
 })();

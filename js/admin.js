@@ -184,9 +184,11 @@
 
   // ---- 진척 대시보드 ----
   function rateOf(cnt, target) { const t = Number(target) || 0; return t ? Math.round((cnt||0)/t*100) : 0; }
+  let dashSelectedClass = null, dashPaint = null;   // 분반 선택 상태(null=전체) · 재렌더 함수
 
   async function renderDashTab() {
     UI.showLoading('현황 집계 중...');
+    dashSelectedClass = null;   // 탭 재진입/새로고침 시 전체로 초기화
     const [cs, ts, counts, unres, allItems, sampleCnt] =
       await Promise.all([API.getCompetencies(), API.getTeams(), API.getItemCounts(),
                          API.getUnresolvedCounts(), API.getItems({}), API.getSampleCount()]);
@@ -213,20 +215,60 @@
           (u ? '<span class="dash-unres">💬 ' + u + '</span>' : '') + '</div></div>';
     }).join('') : '<p class="table-empty">역량이 없습니다.</p>';
 
-    // 조별
+    // 조별 집계 (team_id·class_no 포함 — 분반 필터용)
     const teamAgg = ts.map(t => {
       const tc = cs.filter(c => compTeamIds(c).indexOf(t.team_id) >= 0);
       const cnt = allItems.filter(i => i.team_id === t.team_id).length;
       const tgt = tc.reduce((a, c) => { const asg = assignmentFor(c, t.team_id); return a + (asg ? Number(asg.target_count) || 0 : 0); }, 0);
-      return { name: t.team_name, cnt, tgt, r: rateOf(cnt, tgt), n: tc.length };
+      return { team_id: t.team_id, class_no: t.class_no, name: t.team_name, cnt, tgt, r: rateOf(cnt, tgt), n: tc.length };
     });
-    document.getElementById('dash-team').innerHTML = teamAgg.length ? teamAgg.map(t =>
+    const teamCardHtml = (t) =>
       '<div class="dash-card"><div class="dash-card-top"><span class="dash-name">' + escHtml(t.name) + '</span>' +
       '<span class="dash-rate ' + (t.r > 100 ? 'over' : (t.r < 100 ? 'under' : 'ok')) + '">' + t.r + '%</span></div>' +
       '<div class="dash-meta">역량 ' + t.n + '개</div>' +
       '<div class="dash-bar"><div class="dash-bar-fill" style="width:' + Math.min(t.r,100) + '%"></div></div>' +
-      '<div class="dash-foot"><span>' + t.cnt + '/' + t.tgt + '</span></div></div>').join('')
-      : '<p class="table-empty">조가 없습니다.</p>';
+      '<div class="dash-foot"><span>' + t.cnt + '/' + t.tgt + '</span></div></div>';
+
+    // 분반별 카드 (클릭 시 조별 섹션 필터)
+    const groupCard = (name, cls, teamIds) => {
+      const cnt = allItems.filter(i => teamIds.includes(i.team_id)).length;
+      let tgt = 0;
+      cs.forEach(c => compAssignments(c).forEach(a => { if (teamIds.includes(a.team_id)) tgt += Number(a.target_count) || 0; }));
+      const r = rateOf(cnt, tgt);
+      return '<div class="dash-card dash-class-card' + (dashSelectedClass === cls ? ' selected' : '') +
+        '" data-act="dash-class-select" data-cls="' + cls + '">' +
+        '<div class="dash-card-top"><span class="dash-name">' + escHtml(name) + '</span>' +
+        '<span class="dash-rate ' + (r > 100 ? 'over' : (r < 100 ? 'under' : 'ok')) + '">' + r + '%</span></div>' +
+        '<div class="dash-meta">조 ' + teamIds.length + '개</div>' +
+        '<div class="dash-bar"><div class="dash-bar-fill" style="width:' + Math.min(r,100) + '%"></div></div>' +
+        '<div class="dash-foot"><span>' + cnt + '/' + tgt + '</span></div></div>';
+    };
+
+    function paint() {
+      // 분반별
+      let classHtml = [1,2,3].map(cls =>
+        groupCard(CONST.CLASS_LABEL[cls], cls, ts.filter(t => Number(t.class_no) === cls).map(t => t.team_id))).join('');
+      const unassigned = ts.filter(t => t.class_no == null).map(t => t.team_id);
+      if (unassigned.length) classHtml += groupCard('미지정', 0, unassigned);
+      document.getElementById('dash-class').innerHTML = classHtml;
+      // 조별 (선택 분반으로 필터; 0=미지정)
+      const sel = dashSelectedClass;
+      const teamsF = teamAgg.filter(t => sel == null ? true : (sel === 0 ? t.class_no == null : Number(t.class_no) === sel));
+      document.getElementById('dash-team').innerHTML = teamsF.length
+        ? teamsF.map(teamCardHtml).join('') : '<p class="table-empty">조가 없습니다.</p>';
+      // 조별 헤더 라벨·리셋
+      const sub = document.getElementById('dash-team-sub');
+      if (sub) {
+        if (sel == null) sub.textContent = '조별';
+        else {
+          const label = sel === 0 ? '미지정' : CONST.CLASS_LABEL[sel];
+          sub.innerHTML = '조별 — ' + escHtml(label) +
+            ' <button type="button" class="dash-clear" data-act="dash-class-clear">전체 보기 ✕</button>';
+        }
+      }
+    }
+    dashPaint = paint;
+    paint();
 
     // 전체 요약: 객/서 · 급수
     const totalN = allItems.length;
@@ -246,24 +288,6 @@
       '<div class="dash-stat"><div class="dash-stat-h">샘플 문항 뱅크</div>' +
         '<div class="dash-stat-row"><span>등록 <b>' + sampleCnt + '</b> 개</span>' +
         '<span><a href="samples.html">관리 →</a></span></div></div>';
-
-    // 분반별
-    const groupCard = (name, teamIds) => {
-      const cnt = allItems.filter(i => teamIds.includes(i.team_id)).length;
-      let tgt = 0;
-      cs.forEach(c => compAssignments(c).forEach(a => { if (teamIds.includes(a.team_id)) tgt += Number(a.target_count) || 0; }));
-      const r = rateOf(cnt, tgt);
-      return '<div class="dash-card"><div class="dash-card-top"><span class="dash-name">' + escHtml(name) + '</span>' +
-        '<span class="dash-rate ' + (r > 100 ? 'over' : (r < 100 ? 'under' : 'ok')) + '">' + r + '%</span></div>' +
-        '<div class="dash-meta">조 ' + teamIds.length + '개</div>' +
-        '<div class="dash-bar"><div class="dash-bar-fill" style="width:' + Math.min(r,100) + '%"></div></div>' +
-        '<div class="dash-foot"><span>' + cnt + '/' + tgt + '</span></div></div>';
-    };
-    let classHtml = [1,2,3].map(cls =>
-      groupCard(CONST.CLASS_LABEL[cls], ts.filter(t => Number(t.class_no) === cls).map(t => t.team_id))).join('');
-    const unassigned = ts.filter(t => t.class_no == null).map(t => t.team_id);
-    if (unassigned.length) classHtml += groupCard('미지정', unassigned);
-    document.getElementById('dash-class').innerHTML = classHtml;
   }
   window.renderDashTab = renderDashTab;
 
@@ -421,6 +445,13 @@
       else UI.toast('저장 실패', 'error');
     }
     if (act === 'dash-refresh') renderDashTab();
+    if (act === 'dash-class-select') {
+      const cls = Number(b.dataset.cls);
+      dashSelectedClass = (dashSelectedClass === cls) ? null : cls;   // 같은 카드 재클릭 = 해제
+      if (dashPaint) dashPaint();
+      return;
+    }
+    if (act === 'dash-class-clear') { dashSelectedClass = null; if (dashPaint) dashPaint(); return; }
     if (act === 'dash-csv') exportCsv();
     if (act === 'del-notice') {
       if (!(await UI.confirm('이 공지를 삭제하시겠습니까?'))) return;

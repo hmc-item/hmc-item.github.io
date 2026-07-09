@@ -671,6 +671,41 @@
       else UI.toast('편입 실패', 'error');
       return;
     }
+    if (act === 'bank-dlall') { UI.modal('bank-dl-modal', true); return; }
+    if (act === 'bank-dl-close') { UI.modal('bank-dl-modal', false); return; }
+    if (act === 'bank-dl-xlsx' || act === 'bank-dl-csv') {
+      const rows = window._bankRows || [];
+      if (!rows.length) { UI.toast('내보낼 문항이 없습니다.', 'warning'); return; }
+      XlsxTool.downloadItemRows(rows, act === 'bank-dl-csv' ? 'csv' : 'xlsx', '문제은행');
+      UI.modal('bank-dl-modal', false); return;
+    }
+  });
+  document.getElementById('bank-upload-file') &&
+  document.getElementById('bank-upload-file').addEventListener('change', async (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    UI.showLoading('파싱 중...');
+    let rows;
+    try { rows = await XlsxTool.parseFile(file); }
+    catch (err) { UI.hideLoading(); UI.toast('파싱 실패: ' + err.message, 'error'); e.target.value = ''; return; }
+    const validated = XlsxTool.validateRows(rows);
+    UI.hideLoading();
+    const okRows = validated.filter(v => v.ok);
+    const ngN = validated.length - okRows.length;
+    if (!okRows.length) {
+      document.getElementById('bank-upload-preview').innerHTML =
+        '<div class="upload-summary">저장 가능 <b>0</b>건 / 제외 <b class="ng">' + ngN + '</b>건 — 파일을 확인하세요.</div>';
+      e.target.value = ''; return;
+    }
+    if (!await UI.confirm('유효 ' + okRows.length + '건을 문제은행에 저장할까요? (제외 ' + ngN + '건)')) { e.target.value = ''; return; }
+    UI.showLoading('저장 중...');
+    let saved = 0, failed = 0;
+    for (const v of okRows) { const r = await API.saveBankItem(v.data); if (r) saved++; else failed++; }
+    UI.hideLoading();
+    document.getElementById('bank-upload-preview').innerHTML =
+      '<div class="upload-summary">문제은행 저장 — 성공 <b>' + saved + '</b> · 실패 <b>' + failed + '</b> · 제외 ' + ngN + '</div>';
+    UI.toast('저장: 성공 ' + saved + ' / 실패 ' + failed, failed ? 'warning' : 'success');
+    e.target.value = '';
+    renderBankTab();
   });
   document.getElementById('bank-assign-comp') &&
   document.getElementById('bank-assign-comp').addEventListener('change', (e) => {

@@ -194,6 +194,15 @@
     <button class="btn btn-primary" data-act="bank-assign-save">편입</button></div>
 </div></div>
 
+<!-- 문제은행 다운로드 형식 모달 -->
+<div id="bank-dl-modal" class="modal-backdrop" style="display:none;"><div class="modal" style="max-width:360px;">
+  <div class="modal-header"><h2 class="modal-title">목록 다운로드 형식</h2></div>
+  <div class="modal-body"><p class="help-edit-tip">문제은행 전체를 최종양식으로 내보냅니다.</p></div>
+  <div class="modal-footer"><button class="btn btn-secondary" data-act="bank-dl-close">취소</button>
+    <button class="btn btn-secondary" data-act="bank-dl-csv">CSV</button>
+    <button class="btn btn-primary" data-act="bank-dl-xlsx">엑셀(xlsx)</button></div>
+</div></div>
+
 <script src="js/lib/supabase.js"></script>
 <script src="js/config.js"></script><script src="js/core.js"></script><script src="js/comp-core.js"></script><script src="js/bank-core.js"></script>
 <script src="js/session.js"></script><script src="js/api.js"></script>

@@ -125,12 +125,34 @@
       '<td class="td-center">' + compTotalTarget(c) + '</td>' +
       '<td class="td-actions">' +
         '<button class="btn btn-secondary btn-sm" data-act="th-open" data-id="' + escHtml(c.comp_id) + '">📘 이론서</button>' +
-        '<button class="btn ' + (c.dev_done ? 'btn-primary' : 'btn-secondary') + ' btn-sm" data-act="th-toggle" data-id="' + escHtml(c.comp_id) + '" data-v="' + (c.dev_done ? 0 : 1) + '">' + (c.dev_done ? '✅ 완료' : '○ 미완료') + '</button>' +
         '<button class="btn btn-secondary btn-sm" data-act="edit-comp" data-id="' + escHtml(c.comp_id) + '">수정</button>' +
         '<button class="btn btn-danger btn-sm" data-act="del-comp" data-id="' + escHtml(c.comp_id) + '">삭제</button>' +
       '</td></tr>').join('')
       : '<tr><td colspan="6" class="table-empty">등록된 역량이 없습니다.</td></tr>';
     applySortIndicators('comps');
+  }
+
+  async function openTheoryTeams(compId) {
+    const comp = comps.find(c => c.comp_id === compId);
+    if (!comp) { UI.toast('역량을 찾을 수 없습니다.', 'error'); return; }
+    UI.showLoading('조 목록 불러오는 중...');
+    const counts = await API.getItemCountsForComp(compId);
+    UI.hideLoading();
+    const asg = compAssignments(comp);
+    document.getElementById('th-teams-title').textContent = comp.comp_name + ' — 조 선택';
+    document.getElementById('th-teams-list').innerHTML = asg.length
+      ? asg.map(a => {
+          const cnt = counts[a.team_id] || 0;
+          const done = isDevDone(comp, a.team_id);
+          return '<div class="th-team-row">' +
+            '<span class="th-team-name">' + escHtml(teamName(a.team_id)) + '</span>' +
+            '<span class="th-team-stat">' + cnt + ' / ' + (a.target_count || 0) + '</span>' +
+            '<button class="btn ' + (done ? 'btn-primary' : 'btn-secondary') + ' btn-sm" data-act="th-team-toggle" data-comp="' + escHtml(compId) + '" data-team="' + escHtml(a.team_id) + '" data-v="' + (done ? 0 : 1) + '">' + (done ? '✅ 완료' : '○ 미완료') + '</button>' +
+            '<button class="btn btn-secondary btn-sm" data-act="th-team-open" data-comp="' + escHtml(compId) + '" data-team="' + escHtml(a.team_id) + '">📘 열기</button>' +
+            '</div>';
+        }).join('')
+      : '<div class="empty-state">배정된 조가 없습니다.</div>';
+    document.getElementById('th-teams-modal').style.display = 'flex';
   }
 
   function openCompModal(c) {
@@ -340,12 +362,14 @@
   document.body.addEventListener('click', async (e) => {
     const b = e.target.closest('[data-act]'); if (!b) return;
     const act = b.dataset.act;
-    if (act === 'th-open') { window.location.href = 'theory.html?comp=' + encodeURIComponent(b.dataset.id); return; }
-    if (act === 'th-toggle') {
+    if (act === 'th-open') { await openTheoryTeams(b.dataset.id); return; }
+    if (act === 'th-teams-close') { document.getElementById('th-teams-modal').style.display = 'none'; return; }
+    if (act === 'th-team-open') { window.location.href = 'theory.html?comp=' + encodeURIComponent(b.dataset.comp) + '&team=' + encodeURIComponent(b.dataset.team); return; }
+    if (act === 'th-team-toggle') {
       UI.showLoading('저장 중...');
-      const ok = await API.setDevDone(b.dataset.id, b.dataset.v === '1');
+      const ok = await API.setDevDone(b.dataset.comp, b.dataset.team, b.dataset.v === '1');
       UI.hideLoading();
-      if (ok) { UI.toast('완료 상태를 변경했습니다.', 'success'); window.renderCompsTab && window.renderCompsTab(); }
+      if (ok) { UI.toast('완료 상태를 변경했습니다.', 'success'); comps = await API.getCompetencies(); await openTheoryTeams(b.dataset.comp); }
       else UI.toast('저장 실패', 'error');
       return;
     }

@@ -68,7 +68,7 @@
     for (let i = 1; i <= total; i++) {
       if (i <= count) {
         const it = items[i - 1];
-        const unres = (cmMap[it.item_id] || []).some(c => !c.is_resolved);
+        const unres = (cmMap[it.item_id] || []).some(c => !c.parent_id && !c.is_resolved);
         if (unres) reviewN++;
         rows += '<button class="nav-slot ' + (unres ? 'nav-review' : 'nav-done') +
           '" data-nav-item="' + escHtml(it.item_id) + '">' +
@@ -139,18 +139,36 @@
     });
   };
 
-  // ===== 코멘트: 리스트 표시 + 반영 완료 체크 =====
+  // ===== 코멘트: 리스트 표시 + 반영 완료 체크 + SME 답글 =====
   window.renderItemComments = function () {
     const map = window._cmMap || {};
     document.querySelectorAll('.item-comments-slot').forEach(slot => {
-      const list = map[slot.dataset.id] || [];
-      if (!list.length) { slot.innerHTML = ''; return; }
-      slot.innerHTML = '<div class="sme-cm-head">💬 코멘트 ' + list.length + '건</div>' +
-        list.map(c => '<div class="sme-cm' + (c.is_resolved ? ' done' : '') + '">' +
-          '<div class="sme-cm-top"><span class="sme-cm-author">' + escHtml(c.author_role) + '</span>' +
-            '<label class="sme-cm-check"><input type="checkbox" data-act="cm-resolve" data-id="' +
-              escHtml(c.comment_id) + '"' + (c.is_resolved ? ' checked' : '') + '> 반영 완료</label></div>' +
-          '<div class="sme-cm-body">' + escHtml(c.content) + '</div></div>').join('');
+      const all = map[slot.dataset.id] || [];
+      const tops = all.filter(c => !c.parent_id);
+      if (!tops.length) { slot.innerHTML = ''; return; }
+      const repliesOf = (pid) => all.filter(c => c.parent_id === pid)
+        .sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
+      slot.innerHTML = '<div class="sme-cm-head">💬 코멘트 ' + tops.length + '건</div>' +
+        tops.map(c => {
+          const replies = repliesOf(c.comment_id).map(r =>
+            '<div class="sme-cm-reply"><span class="sme-cm-author">' + escHtml(r.author_role) + '</span>' +
+            '<span class="sme-cm-body">' + escHtml(r.content) + '</span>' +
+            (ctx.canEdit ? ' <button class="cm-link danger" data-act="cm-reply-del" data-id="' + escHtml(r.comment_id) + '">삭제</button>' : '') +
+            '</div>').join('');
+          const replyWrite = ctx.canEdit
+            ? '<div class="sme-cm-reply-write"><textarea class="sme-cm-input" data-parent="' + escHtml(c.comment_id) +
+              '" data-item="' + escHtml(slot.dataset.id) + '" data-comp="' + escHtml(c.comp_id || '') +
+              '" rows="1" placeholder="교수 코멘트에 질문/답글"></textarea>' +
+              '<button class="btn btn-secondary btn-sm" data-act="cm-reply-add" data-parent="' + escHtml(c.comment_id) +
+              '" data-item="' + escHtml(slot.dataset.id) + '" data-comp="' + escHtml(c.comp_id || '') + '">답글</button></div>'
+            : '';
+          return '<div class="sme-cm' + (c.is_resolved ? ' done' : '') + '">' +
+            '<div class="sme-cm-top"><span class="sme-cm-author">' + escHtml(c.author_role) + '</span>' +
+              '<label class="sme-cm-check"><input type="checkbox" data-act="cm-resolve" data-id="' +
+                escHtml(c.comment_id) + '"' + (c.is_resolved ? ' checked' : '') + '> 반영 완료</label></div>' +
+            '<div class="sme-cm-body">' + escHtml(c.content) + '</div>' +
+            replies + replyWrite + '</div>';
+        }).join('');
     });
   };
 
@@ -167,6 +185,34 @@
       chk.closest('.item-comments-slot').dataset.id : ''] || [];
     const c = arr.find(x => x.comment_id === chk.dataset.id); if (c) c.is_resolved = chk.checked;
     chk.closest('.sme-cm').classList.toggle('done', chk.checked);
+  });
+
+  // ===== SME 답글: 작성/삭제 =====
+  document.body.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-act]'); if (!b) return;
+    const act = b.dataset.act;
+    if (act === 'cm-reply-add') {
+      if (!ctx.canEdit) { UI.toast('우리 조 문항에만 답글을 달 수 있습니다.', 'warning'); return; }
+      const ta = b.parentElement.querySelector('.sme-cm-input[data-parent="' + CSS.escape(b.dataset.parent) + '"]');
+      const content = ta ? ta.value.trim() : '';
+      if (!content) { UI.toast('답글을 입력해주세요.', 'warning'); return; }
+      UI.showLoading('작성 중...');
+      const r = await API.addComment({ item_id: b.dataset.item, comp_id: b.dataset.comp, author_role: CONST.ROLE_LABEL.sme, content, parent_id: b.dataset.parent });
+      UI.hideLoading();
+      if (r) { UI.toast('답글이 작성되었습니다.', 'success'); await reload(); }
+      else UI.toast('작성 실패', 'error');
+      return;
+    }
+    if (act === 'cm-reply-del') {
+      if (!ctx.canEdit) return;
+      if (!(await UI.confirm('답글을 삭제하시겠습니까?'))) return;
+      UI.showLoading('삭제 중...');
+      const ok = await API.deleteComment(b.dataset.id);
+      UI.hideLoading();
+      if (ok) { UI.toast('삭제되었습니다.', 'success'); await reload(); }
+      else UI.toast('삭제 실패', 'error');
+      return;
+    }
   });
 
   // ===== 이미지: 모달 첨부/삭제 =====

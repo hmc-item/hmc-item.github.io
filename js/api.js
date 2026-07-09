@@ -136,15 +136,20 @@ const API = (() => {
     const ok = await saveRow('items', null, null, row);
     return ok ? { item_id: id } : null;
   }
+  // 주의: getItem은 identity 컬럼 id를 포함하므로 raw row를 그대로 saveRow에 넘기면
+  // INSERT가 실패(generated always as identity)하고, DELETE는 이미 수행돼 데이터가 소실된다.
+  // saveItem과 동일하게 normItem으로 id 없는 새 행을 재구성한다.
   async function moveItemToBank(itemId) {
     const cur = await getItem(itemId); if (!cur) return false;
-    cur.comp_id = null; cur.team_id = null; cur.updated_at = new Date().toISOString();
-    return await saveRow('items', 'item_id', itemId, cur);
+    const row = normItem(Object.assign({}, cur, { comp_id: null, team_id: null }), itemId);
+    row.created_at = cur.created_at;
+    return await saveRow('items', 'item_id', itemId, row);
   }
   async function assignBankItem(itemId, comp_id, team_id) {
     const cur = await getItem(itemId); if (!cur) return false;
-    cur.comp_id = comp_id; cur.team_id = team_id; cur.updated_at = new Date().toISOString();
-    return await saveRow('items', 'item_id', itemId, cur);
+    const row = normItem(Object.assign({}, cur, { comp_id: comp_id, team_id: team_id }), itemId);
+    row.created_at = cur.created_at;
+    return await saveRow('items', 'item_id', itemId, row);
   }
 
   // ===== Images =====

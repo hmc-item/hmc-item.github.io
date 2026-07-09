@@ -506,6 +506,7 @@
     }));
 
     const compOpts = '<option value="">— 역량 선택 —</option>' +
+      '<option value="__BANK__">📚 문제은행(미배정)</option>' +
       comps.map(c => '<option value="' + escHtml(c.comp_id) + '">' +
         escHtml(c.comp_name) + ' (' + escHtml(compTeamIds(c).map(id => teamName(id)).join(', ') || '-') + ')</option>').join('');
     const teamOpts = '<option value="">— 조 선택 —</option>' +
@@ -540,6 +541,7 @@
     for (const g of _impGroups) {
       const compId = document.getElementById(g.compSelId).value;
       if (!compId) { UI.toast('모든 그룹에 역량을 지정하세요: ' + g.job + ' ▸ ' + g.area, 'warning'); return; }
+      if (compId === '__BANK__') { jobs.push({ g, bank: true }); continue; }
       const teamId = document.getElementById(g.teamSelId).value;
       if (!teamId) { UI.toast('모든 그룹에 조를 지정하세요: ' + g.job + ' ▸ ' + g.area, 'warning'); return; }
       const comp = (window._impComps || []).find(c => c.comp_id === compId);
@@ -554,13 +556,15 @@
     for (const j of jobs) {
       for (const idx of j.g.rows) {
         const d = _impValidated[idx].data;
-        const res = await API.saveItem({
-          comp_id: j.compId, team_id: j.teamId,
+        const payload = {
           item_type: d.item_type, grade: d.grade, bloom: d.bloom,
           question: d.question, option1: d.option1, option2: d.option2,
           option3: d.option3, option4: d.option4, answer: d.answer,
           model_answer: d.model_answer, explanation: d.explanation
-        });
+        };
+        const res = j.bank
+          ? await API.saveBankItem(payload)
+          : await API.saveItem(Object.assign({ comp_id: j.compId, team_id: j.teamId }, payload));
         if (res) saved++; else failed++;
       }
     }

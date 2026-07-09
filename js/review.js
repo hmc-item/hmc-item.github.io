@@ -85,8 +85,8 @@
           const done = isDevDone(comp, a.team_id);
           return '<div class="th-team-row">' +
             '<span class="th-team-name">' + escHtml(name) + '</span>' +
-            '<span class="th-team-stat">' + cnt + ' / ' + (a.target_count || 0) + (done ? ' · ✅완료' : ' · ○') + '</span>' +
-            '<button class="btn btn-primary btn-sm" data-act="th-team-open" data-comp="' + escHtml(compId) + '" data-team="' + escHtml(a.team_id) + '">📘 열기</button>' +
+            '<span class="th-team-stat">' + cnt + ' / ' + (a.target_count || 0) + (done ? ' · ✅ 문항개발 완료' : ' · ○ 미완료') + '</span>' +
+            '<button class="btn ' + (done ? 'btn-primary' : 'btn-secondary') + ' btn-sm" data-act="th-team-open" data-comp="' + escHtml(compId) + '" data-team="' + escHtml(a.team_id) + '" data-done="' + (done ? 1 : 0) + '">📘 열기</button>' +
             '</div>';
         }).join('')
       : '<div class="empty-state">배정된 조가 없습니다.</div>';
@@ -114,7 +114,10 @@
     const b = e.target.closest('[data-act]'); if (!b) return;
     const act = b.dataset.act;
     if (act === 'th-teams-close') { document.getElementById('th-teams-modal').style.display = 'none'; return; }
-    if (act === 'th-team-open') { window.location.href = 'theory.html?comp=' + encodeURIComponent(b.dataset.comp) + '&team=' + encodeURIComponent(b.dataset.team); return; }
+    if (act === 'th-team-open') {
+      if (b.dataset.done !== '1') { UI.toast('문항개발이 완료되지 않았습니다. 해당 조가 items 화면에서 "문항개발 완료"를 체크해야 이론서를 개발할 수 있습니다.', 'warning', 5000); return; }
+      window.location.href = 'theory.html?comp=' + encodeURIComponent(b.dataset.comp) + '&team=' + encodeURIComponent(b.dataset.team); return;
+    }
     if (act === 'cm-add') {
       const ta = document.querySelector('.cm-input[data-item="' + CSS.escape(b.dataset.id) + '"]');
       const content = ta ? ta.value.trim() : '';

@@ -146,9 +146,8 @@
           const done = isDevDone(comp, a.team_id);
           return '<div class="th-team-row">' +
             '<span class="th-team-name">' + escHtml(teamName(a.team_id)) + '</span>' +
-            '<span class="th-team-stat">' + cnt + ' / ' + (a.target_count || 0) + '</span>' +
-            '<button class="btn ' + (done ? 'btn-primary' : 'btn-secondary') + ' btn-sm" data-act="th-team-toggle" data-comp="' + escHtml(compId) + '" data-team="' + escHtml(a.team_id) + '" data-v="' + (done ? 0 : 1) + '">' + (done ? '✅ 완료' : '○ 미완료') + '</button>' +
-            '<button class="btn btn-secondary btn-sm" data-act="th-team-open" data-comp="' + escHtml(compId) + '" data-team="' + escHtml(a.team_id) + '">📘 열기</button>' +
+            '<span class="th-team-stat">' + cnt + ' / ' + (a.target_count || 0) + (done ? ' · ✅ 문항개발 완료' : ' · ○ 미완료') + '</span>' +
+            '<button class="btn ' + (done ? 'btn-primary' : 'btn-secondary') + ' btn-sm" data-act="th-team-open" data-comp="' + escHtml(compId) + '" data-team="' + escHtml(a.team_id) + '" data-done="' + (done ? 1 : 0) + '">📘 열기</button>' +
             '</div>';
         }).join('')
       : '<div class="empty-state">배정된 조가 없습니다.</div>';
@@ -364,14 +363,9 @@
     const act = b.dataset.act;
     if (act === 'th-open') { await openTheoryTeams(b.dataset.id); return; }
     if (act === 'th-teams-close') { document.getElementById('th-teams-modal').style.display = 'none'; return; }
-    if (act === 'th-team-open') { window.location.href = 'theory.html?comp=' + encodeURIComponent(b.dataset.comp) + '&team=' + encodeURIComponent(b.dataset.team); return; }
-    if (act === 'th-team-toggle') {
-      UI.showLoading('저장 중...');
-      const ok = await API.setDevDone(b.dataset.comp, b.dataset.team, b.dataset.v === '1');
-      UI.hideLoading();
-      if (ok) { UI.toast('완료 상태를 변경했습니다.', 'success'); comps = await API.getCompetencies(); await openTheoryTeams(b.dataset.comp); }
-      else UI.toast('저장 실패', 'error');
-      return;
+    if (act === 'th-team-open') {
+      if (b.dataset.done !== '1') { UI.toast('문항개발이 완료되지 않았습니다. 해당 조가 items 화면에서 "문항개발 완료"를 체크해야 이론서를 개발할 수 있습니다.', 'warning', 5000); return; }
+      window.location.href = 'theory.html?comp=' + encodeURIComponent(b.dataset.comp) + '&team=' + encodeURIComponent(b.dataset.team); return;
     }
     if (act === 'add-team') openTeamModal(null);
     if (act === 'team-close') UI.modal('team-modal', false);

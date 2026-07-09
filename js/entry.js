@@ -5,9 +5,15 @@
   const teamSelect = document.getElementById('team-select');
   let allTeams = [];
 
+  const ROLE_KEY = { sme: 'SME', coach: '교수', admin: '관리자' };
+
   grid.addEventListener('click', async (e) => {
     const b = e.target.closest('.role-btn'); if (!b) return;
     const role = b.dataset.role;
+
+    const ok = await AuthGate.require(ROLE_KEY[role]);
+    if (!ok) return;   // 취소·인증 실패 시 역할 선택 화면 유지
+
     if (role === 'coach') { Session.set({ role: 'coach' }); window.location.href = 'review.html'; return; }
     if (role === 'admin') { Session.set({ role: 'admin' }); window.location.href = 'admin.html'; return; }
     // SME → 분반 선택 노출

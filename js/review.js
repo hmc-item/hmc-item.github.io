@@ -19,18 +19,32 @@
     sel.value = (prev && list.some(t => t.team_id === prev)) ? prev : '';
   }
 
+  function commentRow(c, isReply) {
+    return '<div class="cm-row' + (isReply ? ' cm-reply' : '') + (c.is_resolved ? ' resolved' : '') + '">' +
+      '<div class="cm-meta"><span class="cm-author">' + escHtml(c.author_role) + '</span>' +
+        '<span class="cm-time">' + escHtml(String(c.created_at || '').slice(0,16).replace('T',' ')) + '</span>' +
+        (!isReply && c.is_resolved ? '<span class="cm-resolved">반영완료</span>' : '') + '</div>' +
+      '<div class="cm-content">' + escHtml(c.content) + '</div>' +
+      '<div class="cm-actions">' +
+        '<button class="cm-link" data-act="cm-edit" data-id="' + escHtml(c.comment_id) + '">수정</button>' +
+        '<button class="cm-link danger" data-act="cm-del" data-id="' + escHtml(c.comment_id) + '">삭제</button>' +
+      '</div></div>';
+  }
+
   function commentBlock(it) {
-    const list = commentMap[it.item_id] || [];
-    const existing = list.map(c =>
-      '<div class="cm-row' + (c.is_resolved ? ' resolved' : '') + '">' +
-        '<div class="cm-meta"><span class="cm-author">' + escHtml(c.author_role) + '</span>' +
-          '<span class="cm-time">' + escHtml(String(c.created_at || '').slice(0,16).replace('T',' ')) + '</span>' +
-          (c.is_resolved ? '<span class="cm-resolved">반영완료</span>' : '') + '</div>' +
-        '<div class="cm-content">' + escHtml(c.content) + '</div>' +
-        '<div class="cm-actions">' +
-          '<button class="cm-link" data-act="cm-edit" data-id="' + escHtml(c.comment_id) + '">수정</button>' +
-          '<button class="cm-link danger" data-act="cm-del" data-id="' + escHtml(c.comment_id) + '">삭제</button>' +
-        '</div></div>').join('');
+    const all = commentMap[it.item_id] || [];
+    const tops = all.filter(c => !c.parent_id);
+    const repliesOf = (pid) => all.filter(c => c.parent_id === pid)
+      .sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
+    const existing = tops.map(c =>
+      commentRow(c, false) +
+      repliesOf(c.comment_id).map(r => commentRow(r, true)).join('') +
+      '<div class="cm-reply-write"><textarea class="cm-input" data-parent="' + escHtml(c.comment_id) +
+        '" data-item="' + escHtml(it.item_id) + '" data-comp="' + escHtml(it.comp_id) +
+        '" rows="1" placeholder="답글 (' + escHtml(authorRole) + ')"></textarea>' +
+      '<button class="btn btn-secondary btn-sm" data-act="cm-reply" data-parent="' + escHtml(c.comment_id) +
+        '" data-item="' + escHtml(it.item_id) + '" data-comp="' + escHtml(it.comp_id) + '">답글</button></div>'
+    ).join('');
     return '<div class="cm-box"><div class="cm-list">' + (existing || '<span class="empty-text">코멘트 없음</span>') + '</div>' +
       '<div class="cm-write"><textarea class="cm-input" data-item="' + escHtml(it.item_id) +
         '" data-comp="' + escHtml(it.comp_id) + '" rows="2" placeholder="코멘트 입력 (' + escHtml(authorRole) + ')"></textarea>' +
@@ -132,8 +146,19 @@
       if (b.dataset.done !== '1') { UI.toast('문항개발이 완료되지 않았습니다. 해당 조가 items 화면에서 "문항개발 완료"를 체크해야 이론서를 개발할 수 있습니다.', 'warning', 5000); return; }
       window.location.href = 'theory.html?comp=' + encodeURIComponent(b.dataset.comp) + '&team=' + encodeURIComponent(b.dataset.team); return;
     }
+    if (act === 'cm-reply') {
+      const ta = b.parentElement.querySelector('.cm-input[data-parent="' + CSS.escape(b.dataset.parent) + '"]');
+      const content = ta ? ta.value.trim() : '';
+      if (!content) { UI.toast('답글을 입력해주세요.', 'warning'); return; }
+      UI.showLoading('작성 중...');
+      const r = await API.addComment({ item_id: b.dataset.item, comp_id: b.dataset.comp, author_role: authorRole, content, parent_id: b.dataset.parent });
+      UI.hideLoading();
+      if (r) { UI.toast('답글이 작성되었습니다.', 'success'); await loadItemsAndComments(); }
+      else UI.toast('작성 실패', 'error');
+      return;
+    }
     if (act === 'cm-add') {
-      const ta = document.querySelector('.cm-input[data-item="' + CSS.escape(b.dataset.id) + '"]');
+      const ta = document.querySelector('.cm-input[data-item="' + CSS.escape(b.dataset.id) + '"]:not([data-parent])');
       const content = ta ? ta.value.trim() : '';
       if (!content) { UI.toast('코멘트를 입력해주세요.', 'warning'); return; }
       UI.showLoading('작성 중...');

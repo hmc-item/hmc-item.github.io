@@ -21,3 +21,8 @@
 .th-team-row { display:flex; align-items:center; gap:12px; padding:12px 14px; border:1px solid var(--border); border-radius:8px; }
 .th-team-name { font-weight:600; flex:1; }
 .th-team-stat { font-size:13px; color:var(--text-muted); white-space:nowrap; }
+
+/* 답글 스레드 (2026-07-09) */
+.cm-row.cm-reply { margin-left:22px; padding-left:10px; border-left:2px solid var(--border); background:var(--bg-subtle, #fafbfc); }
+.cm-reply-write { display:flex; gap:6px; margin:4px 0 12px 22px; }
+.cm-reply-write .cm-input { flex:1; min-height:30px; }

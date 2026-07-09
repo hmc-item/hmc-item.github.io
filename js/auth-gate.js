@@ -67,5 +67,75 @@ function sha256Hex(str) {
   return result;
 }
 
-if (typeof window !== 'undefined') window.sha256Hex = sha256Hex;
+const AuthGate = (() => {
+  const UNLOCK_KEY = 'itemdev_unlocked';
+  const LABEL = { 'SME': 'SME', '교수': '교수', '관리자': '관리자' };
+
+  function store() { try { return JSON.parse(sessionStorage.getItem(UNLOCK_KEY)) || {}; } catch (e) { return {}; } }
+  function isUnlocked(key) { return store()[key] === true; }
+  function setUnlocked(key) { const s = store(); s[key] = true; sessionStorage.setItem(UNLOCK_KEY, JSON.stringify(s)); }
+
+  function buildModal() {
+    let el = document.getElementById('auth-gate-modal');
+    if (el) return el;
+    el = document.createElement('div');
+    el.id = 'auth-gate-modal';
+    el.className = 'modal-backdrop';
+    el.innerHTML =
+      '<div class="modal" style="max-width:380px;"><div class="modal-header">' +
+        '<h2 class="modal-title" id="auth-gate-title"></h2></div>' +
+      '<div class="modal-body">' +
+        '<input type="password" id="auth-gate-input" class="form-control" ' +
+          'autocomplete="off" placeholder="비밀번호" aria-labelledby="auth-gate-title">' +
+        '<p id="auth-gate-error" class="auth-gate-error" aria-live="polite"></p>' +
+      '</div><div class="modal-footer">' +
+        '<button class="btn btn-secondary" data-a="cancel">취소</button>' +
+        '<button class="btn btn-primary" data-a="ok">확인</button>' +
+      '</div></div>';
+    document.body.appendChild(el);
+    return el;
+  }
+
+  function require(authKey) {
+    return new Promise((resolve) => {
+      if (!window.ROLE_AUTH || !ROLE_AUTH[authKey]) {
+        UI.toast('인증 설정을 불러오지 못했습니다. 새로고침 후 다시 시도하세요.', 'error');
+        resolve(false); return;
+      }
+      if (isUnlocked(authKey)) { resolve(true); return; }
+
+      const el = buildModal();
+      const titleEl = document.getElementById('auth-gate-title');
+      const inputEl = document.getElementById('auth-gate-input');
+      const errEl = document.getElementById('auth-gate-error');
+      titleEl.textContent = (LABEL[authKey] || authKey) + ' 비밀번호 입력';
+      inputEl.value = '';
+      errEl.textContent = '';
+      el.style.display = 'flex';
+      setTimeout(() => inputEl.focus(), 0);
+
+      function close(val) {
+        el.style.display = 'none';
+        el.onclick = null; inputEl.onkeydown = null;
+        resolve(val);
+      }
+      function submit() {
+        const v = inputEl.value;
+        if (!v) { errEl.textContent = '비밀번호를 입력하세요'; return; }
+        if (sha256Hex(v) === ROLE_AUTH[authKey].hash) { setUnlocked(authKey); close(true); }
+        else { errEl.textContent = '비밀번호가 올바르지 않습니다'; inputEl.select(); }
+      }
+      el.onclick = (e) => {
+        const b = e.target.closest('[data-a]');
+        if (b && b.dataset.a === 'ok') { submit(); return; }
+        if ((b && b.dataset.a === 'cancel') || e.target === el) close(false);
+      };
+      inputEl.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); submit(); } };
+    });
+  }
+
+  return { require, isUnlocked };
+})();
+
+if (typeof window !== 'undefined') { window.sha256Hex = sha256Hex; window.AuthGate = AuthGate; }
 if (typeof module !== 'undefined' && module.exports) module.exports = { sha256Hex };

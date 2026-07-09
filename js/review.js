@@ -69,6 +69,30 @@
     applyFilters();
   }
 
+  async function openTheoryTeams(compId) {
+    const comp = comps.find(c => c.comp_id === compId);
+    if (!comp) { UI.toast('역량을 찾을 수 없습니다.', 'error'); return; }
+    UI.showLoading('조 목록 불러오는 중...');
+    const counts = await API.getItemCountsForComp(compId);
+    UI.hideLoading();
+    const asg = compAssignments(comp);
+    document.getElementById('th-teams-title').textContent = comp.comp_name + ' — 조 선택';
+    document.getElementById('th-teams-list').innerHTML = asg.length
+      ? asg.map(a => {
+          const t = teams.find(x => x.team_id === a.team_id);
+          const name = t ? t.team_name : a.team_id;
+          const cnt = counts[a.team_id] || 0;
+          const done = isDevDone(comp, a.team_id);
+          return '<div class="th-team-row">' +
+            '<span class="th-team-name">' + escHtml(name) + '</span>' +
+            '<span class="th-team-stat">' + cnt + ' / ' + (a.target_count || 0) + (done ? ' · ✅완료' : ' · ○') + '</span>' +
+            '<button class="btn btn-primary btn-sm" data-act="th-team-open" data-comp="' + escHtml(compId) + '" data-team="' + escHtml(a.team_id) + '">📘 열기</button>' +
+            '</div>';
+        }).join('')
+      : '<div class="empty-state">배정된 조가 없습니다.</div>';
+    document.getElementById('th-teams-modal').style.display = 'flex';
+  }
+
   async function init() {
     [comps, teams] = await Promise.all([API.getCompetencies(), API.getTeams()]);
     document.getElementById('rf-comp').innerHTML = '<option value="">역량 전체</option>' +
@@ -78,10 +102,10 @@
     ['rf-comp','rf-team','rf-type','rf-diff'].forEach(id =>
       document.getElementById(id).addEventListener('change', applyFilters));
     document.getElementById('rf-unres').addEventListener('change', applyFilters);
-    document.getElementById('rf-theory').addEventListener('click', () => {
+    document.getElementById('rf-theory').addEventListener('click', async () => {
       const fc = document.getElementById('rf-comp').value;
       if (!fc) { UI.toast('역량을 먼저 선택하세요.', 'warning'); return; }
-      window.location.href = 'theory.html?comp=' + encodeURIComponent(fc);
+      await openTheoryTeams(fc);
     });
     await loadItemsAndComments();
   }
@@ -89,6 +113,8 @@
   document.body.addEventListener('click', async (e) => {
     const b = e.target.closest('[data-act]'); if (!b) return;
     const act = b.dataset.act;
+    if (act === 'th-teams-close') { document.getElementById('th-teams-modal').style.display = 'none'; return; }
+    if (act === 'th-team-open') { window.location.href = 'theory.html?comp=' + encodeURIComponent(b.dataset.comp) + '&team=' + encodeURIComponent(b.dataset.team); return; }
     if (act === 'cm-add') {
       const ta = document.querySelector('.cm-input[data-item="' + CSS.escape(b.dataset.id) + '"]');
       const content = ta ? ta.value.trim() : '';

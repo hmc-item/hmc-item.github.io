@@ -614,6 +614,10 @@ textarea.form-control {
 .cm-write { display:flex; gap:8px; align-items:flex-start; }
 .cm-input { flex:1; resize:vertical; min-height:42px; }
 .empty-text { font-size:13px; color:var(--text-muted); }
+.th-teams-list { display:flex; flex-direction:column; gap:10px; padding:20px 28px 24px; max-height:60vh; overflow-y:auto; }
+.th-team-row { display:flex; align-items:center; gap:12px; padding:12px 14px; border:1px solid var(--border); border-radius:8px; }
+.th-team-name { font-weight:600; flex:1; }
+.th-team-stat { font-size:13px; color:var(--text-muted); white-space:nowrap; }
 </style></head>
 <body><nav id="navbar"></nav><div class="page-wrapper">
   <div class="review-header" style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
@@ -633,6 +637,10 @@ textarea.form-control {
   </div>
   <div class="item-list" id="review-list"><div class="empty-state">역량/조를 선택하세요.</div></div>
 </div>
+<div id="th-teams-modal" class="modal-backdrop" style="display:none;"><div class="modal" style="max-width:460px;">
+  <div class="modal-header"><h2 class="modal-title" id="th-teams-title">이론서 — 조 선택</h2><button class="modal-close" data-act="th-teams-close">✕</button></div>
+  <div id="th-teams-list" class="th-teams-list"></div>
+</div></div>
 <script>/**
  * Minified by jsDelivr using Terser v5.48.0.
  * Original file: /npm/@supabase/supabase-js@2.109.0/dist/umd/supabase.js
@@ -882,6 +890,61 @@ window.UI = UI;
 window.Session = Session;
 window.renderHelpBody = Session.renderHelpBody;
 window.DEFAULT_HELP = Session.DEFAULT_HELP;
+</script><script>// item-dev/js/comp-core.js — 역량 조 배정 순수 헬퍼 (window + module.exports 이중 노출)
+(function () {
+  var DEFAULT = (typeof CONST !== 'undefined' && CONST.DEFAULT_TARGET) || 50;
+
+  function compAssignments(comp) {
+    if (!comp) return [];
+    var a = comp.assignments;
+    if (typeof a === 'string') { try { a = JSON.parse(a); } catch (e) { a = null; } }
+    if (Array.isArray(a) && a.length) {
+      var out = [];
+      for (var i = 0; i < a.length; i++) {
+        var x = a[i];
+        if (x && x.team_id) {
+          out.push({ team_id: x.team_id, target_count: (x.target_count != null ? Number(x.target_count) : DEFAULT) });
+        }
+      }
+      return out;
+    }
+    if (comp.team_id) {  // 구 데이터 폴백
+      return [{ team_id: comp.team_id, target_count: (comp.target_count != null ? Number(comp.target_count) : DEFAULT) }];
+    }
+    return [];
+  }
+  function assignmentFor(comp, teamId) {
+    var list = compAssignments(comp);
+    for (var i = 0; i < list.length; i++) if (list[i].team_id === teamId) return list[i];
+    return null;
+  }
+  function compTeamIds(comp) {
+    return compAssignments(comp).map(function (x) { return x.team_id; });
+  }
+  function compTotalTarget(comp) {
+    return compAssignments(comp).reduce(function (a, x) { return a + (Number(x.target_count) || 0); }, 0);
+  }
+
+  function compDevDoneTeams(comp) {
+    if (!comp) return [];
+    var a = comp.dev_done_teams;
+    if (typeof a === 'string') { try { a = JSON.parse(a); } catch (e) { a = null; } }
+    if (!Array.isArray(a)) return [];
+    var out = [];
+    for (var i = 0; i < a.length; i++) if (a[i]) out.push(a[i]);
+    return out;
+  }
+  function isDevDone(comp, teamId) {
+    return compDevDoneTeams(comp).indexOf(teamId) >= 0;
+  }
+  function theoryKey(compId, teamId) {
+    return String(compId) + '::' + String(teamId);
+  }
+
+  var api = { compAssignments: compAssignments, assignmentFor: assignmentFor, compTeamIds: compTeamIds, compTotalTarget: compTotalTarget, compDevDoneTeams: compDevDoneTeams, isDevDone: isDevDone, theoryKey: theoryKey };
+  if (typeof window !== 'undefined') for (var k in api) window[k] = api[k];
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+})();
 </script><script>const API = (() => {
 
   let lastUploadError = '';   // 최근 이미지 업로드 실패 사유(토스트로 노출 — 멤버가 원인 보고 가능)
@@ -1226,9 +1289,9 @@ window.DEFAULT_HELP = Session.DEFAULT_HELP;
   }
 
   // ===== Theory sections =====
-  async function getTheorySection(compId) {
+  async function getTheorySection(sectionKey) {   // sectionKey = comp_id::team_id
     const { data, error } = await DB.from('theory_sections')
-      .select('content,status,updated_at').eq('section_key', compId);
+      .select('content,status,updated_at').eq('section_key', sectionKey);
     if (error) { console.error('[getTheorySection]', error); return null; }
     return data && data[0] ? data[0] : null;
   }
@@ -1244,11 +1307,22 @@ window.DEFAULT_HELP = Session.DEFAULT_HELP;
     const ok = await saveRow('theory_sections', 'section_key', draft.sectionKey, row);
     return ok ? { section_key: draft.sectionKey } : null;
   }
-  async function setDevDone(compId, v) {
+  async function setDevDone(compId, teamId, v) {
     const { data } = await DB.from('competencies').select('*').eq('comp_id', compId);
     if (!data || !data.length) return false;
     const cur = data[0];
-    return saveRow('competencies', 'comp_id', compId, Object.assign({}, cur, { dev_done: !!v }));
+    let arr = cur.dev_done_teams;
+    if (typeof arr === 'string') { try { arr = JSON.parse(arr); } catch (e) { arr = []; } }
+    if (!Array.isArray(arr)) arr = [];
+    arr = arr.filter(t => t !== teamId);
+    if (v) arr.push(teamId);
+    return saveRow('competencies', 'comp_id', compId, Object.assign({}, cur, { dev_done_teams: arr }));
+  }
+  async function getItemCountsForComp(compId) {
+    const { data, error } = await DB.from('items').select('team_id').eq('comp_id', compId);
+    if (error) { console.error('[getItemCountsForComp]', error); return {}; }
+    const m = {}; (data || []).forEach(r => { if (r.team_id) m[r.team_id] = (m[r.team_id] || 0) + 1; });
+    return m;
   }
 
   // ===== Comments =====
@@ -1316,7 +1390,7 @@ window.DEFAULT_HELP = Session.DEFAULT_HELP;
     copySampleImageToItem,
     getNotices, getNoticesForTeam, saveNotice, deleteNotice,
     getHelpTexts, getHelpText, saveHelpText,
-    getTheorySection, saveTheorySection, setDevDone,
+    getTheorySection, saveTheorySection, setDevDone, getItemCountsForComp,
     uploadErrorMessage: () => lastUploadError
   };
 })();
@@ -1392,6 +1466,30 @@ window.API = API;
     applyFilters();
   }
 
+  async function openTheoryTeams(compId) {
+    const comp = comps.find(c => c.comp_id === compId);
+    if (!comp) { UI.toast('역량을 찾을 수 없습니다.', 'error'); return; }
+    UI.showLoading('조 목록 불러오는 중...');
+    const counts = await API.getItemCountsForComp(compId);
+    UI.hideLoading();
+    const asg = compAssignments(comp);
+    document.getElementById('th-teams-title').textContent = comp.comp_name + ' — 조 선택';
+    document.getElementById('th-teams-list').innerHTML = asg.length
+      ? asg.map(a => {
+          const t = teams.find(x => x.team_id === a.team_id);
+          const name = t ? t.team_name : a.team_id;
+          const cnt = counts[a.team_id] || 0;
+          const done = isDevDone(comp, a.team_id);
+          return '<div class="th-team-row">' +
+            '<span class="th-team-name">' + escHtml(name) + '</span>' +
+            '<span class="th-team-stat">' + cnt + ' / ' + (a.target_count || 0) + (done ? ' · ✅ 문항개발 완료' : ' · ○ 미완료') + '</span>' +
+            '<button class="btn ' + (done ? 'btn-primary' : 'btn-secondary') + ' btn-sm" data-act="th-team-open" data-comp="' + escHtml(compId) + '" data-team="' + escHtml(a.team_id) + '" data-done="' + (done ? 1 : 0) + '">📘 열기</button>' +
+            '</div>';
+        }).join('')
+      : '<div class="empty-state">배정된 조가 없습니다.</div>';
+    document.getElementById('th-teams-modal').style.display = 'flex';
+  }
+
   async function init() {
     [comps, teams] = await Promise.all([API.getCompetencies(), API.getTeams()]);
     document.getElementById('rf-comp').innerHTML = '<option value="">역량 전체</option>' +
@@ -1401,10 +1499,10 @@ window.API = API;
     ['rf-comp','rf-team','rf-type','rf-diff'].forEach(id =>
       document.getElementById(id).addEventListener('change', applyFilters));
     document.getElementById('rf-unres').addEventListener('change', applyFilters);
-    document.getElementById('rf-theory').addEventListener('click', () => {
+    document.getElementById('rf-theory').addEventListener('click', async () => {
       const fc = document.getElementById('rf-comp').value;
       if (!fc) { UI.toast('역량을 먼저 선택하세요.', 'warning'); return; }
-      window.location.href = 'theory.html?comp=' + encodeURIComponent(fc);
+      await openTheoryTeams(fc);
     });
     await loadItemsAndComments();
   }
@@ -1412,6 +1510,11 @@ window.API = API;
   document.body.addEventListener('click', async (e) => {
     const b = e.target.closest('[data-act]'); if (!b) return;
     const act = b.dataset.act;
+    if (act === 'th-teams-close') { document.getElementById('th-teams-modal').style.display = 'none'; return; }
+    if (act === 'th-team-open') {
+      if (b.dataset.done !== '1') { UI.toast('문항개발이 완료되지 않았습니다. 해당 조가 items 화면에서 "문항개발 완료"를 체크해야 이론서를 개발할 수 있습니다.', 'warning', 5000); return; }
+      window.location.href = 'theory.html?comp=' + encodeURIComponent(b.dataset.comp) + '&team=' + encodeURIComponent(b.dataset.team); return;
+    }
     if (act === 'cm-add') {
       const ta = document.querySelector('.cm-input[data-item="' + CSS.escape(b.dataset.id) + '"]');
       const content = ta ? ta.value.trim() : '';

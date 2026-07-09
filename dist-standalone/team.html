@@ -759,7 +759,23 @@ window.UI = UI;
     return compAssignments(comp).reduce(function (a, x) { return a + (Number(x.target_count) || 0); }, 0);
   }
 
-  var api = { compAssignments: compAssignments, assignmentFor: assignmentFor, compTeamIds: compTeamIds, compTotalTarget: compTotalTarget };
+  function compDevDoneTeams(comp) {
+    if (!comp) return [];
+    var a = comp.dev_done_teams;
+    if (typeof a === 'string') { try { a = JSON.parse(a); } catch (e) { a = null; } }
+    if (!Array.isArray(a)) return [];
+    var out = [];
+    for (var i = 0; i < a.length; i++) if (a[i]) out.push(a[i]);
+    return out;
+  }
+  function isDevDone(comp, teamId) {
+    return compDevDoneTeams(comp).indexOf(teamId) >= 0;
+  }
+  function theoryKey(compId, teamId) {
+    return String(compId) + '::' + String(teamId);
+  }
+
+  var api = { compAssignments: compAssignments, assignmentFor: assignmentFor, compTeamIds: compTeamIds, compTotalTarget: compTotalTarget, compDevDoneTeams: compDevDoneTeams, isDevDone: isDevDone, theoryKey: theoryKey };
   if (typeof window !== 'undefined') for (var k in api) window[k] = api[k];
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })();
@@ -1204,9 +1220,9 @@ window.DEFAULT_HELP = Session.DEFAULT_HELP;
   }
 
   // ===== Theory sections =====
-  async function getTheorySection(compId) {
+  async function getTheorySection(sectionKey) {   // sectionKey = comp_id::team_id
     const { data, error } = await DB.from('theory_sections')
-      .select('content,status,updated_at').eq('section_key', compId);
+      .select('content,status,updated_at').eq('section_key', sectionKey);
     if (error) { console.error('[getTheorySection]', error); return null; }
     return data && data[0] ? data[0] : null;
   }
@@ -1222,11 +1238,22 @@ window.DEFAULT_HELP = Session.DEFAULT_HELP;
     const ok = await saveRow('theory_sections', 'section_key', draft.sectionKey, row);
     return ok ? { section_key: draft.sectionKey } : null;
   }
-  async function setDevDone(compId, v) {
+  async function setDevDone(compId, teamId, v) {
     const { data } = await DB.from('competencies').select('*').eq('comp_id', compId);
     if (!data || !data.length) return false;
     const cur = data[0];
-    return saveRow('competencies', 'comp_id', compId, Object.assign({}, cur, { dev_done: !!v }));
+    let arr = cur.dev_done_teams;
+    if (typeof arr === 'string') { try { arr = JSON.parse(arr); } catch (e) { arr = []; } }
+    if (!Array.isArray(arr)) arr = [];
+    arr = arr.filter(t => t !== teamId);
+    if (v) arr.push(teamId);
+    return saveRow('competencies', 'comp_id', compId, Object.assign({}, cur, { dev_done_teams: arr }));
+  }
+  async function getItemCountsForComp(compId) {
+    const { data, error } = await DB.from('items').select('team_id').eq('comp_id', compId);
+    if (error) { console.error('[getItemCountsForComp]', error); return {}; }
+    const m = {}; (data || []).forEach(r => { if (r.team_id) m[r.team_id] = (m[r.team_id] || 0) + 1; });
+    return m;
   }
 
   // ===== Comments =====
@@ -1294,7 +1321,7 @@ window.DEFAULT_HELP = Session.DEFAULT_HELP;
     copySampleImageToItem,
     getNotices, getNoticesForTeam, saveNotice, deleteNotice,
     getHelpTexts, getHelpText, saveHelpText,
-    getTheorySection, saveTheorySection, setDevDone,
+    getTheorySection, saveTheorySection, setDevDone, getItemCountsForComp,
     uploadErrorMessage: () => lastUploadError
   };
 })();
@@ -1322,9 +1349,9 @@ window.API = API;
         '<span class="comp-rate' + (over ? ' over' : '') + '">' + r + '%' + (over ? ' 초과 ✅' : '') + '</span></div>' +
         '<div class="comp-bar"><div class="comp-bar-fill" style="width:' + Math.min(r, 100) + '%"></div></div></div>' +
       '<div class="comp-go">' + (mine ? '✏️ 문항 작성 →' : '👁 읽기 전용 →') + '</div>' +
-      (mine ? '<button class="btn ' + (c.dev_done ? 'btn-primary' : 'btn-secondary') +
-        ' btn-sm th-open" data-comp="' + escHtml(c.comp_id) + '" data-done="' + (c.dev_done ? 1 : 0) +
-        '" style="margin-top:8px;width:100%;">📘 이론서 개발' + (c.dev_done ? '' : ' 🔒') + '</button>' : '') +
+      (mine ? (function () { const done = isDevDone(c, s.team_id); return '<button class="btn ' + (done ? 'btn-primary' : 'btn-secondary') +
+        ' btn-sm th-open" data-comp="' + escHtml(c.comp_id) + '" data-done="' + (done ? 1 : 0) +
+        '" style="margin-top:8px;width:100%;">📘 이론서 개발</button>'; })() : '') +
       '</div>';
   }
 
@@ -1385,7 +1412,7 @@ window.API = API;
     if (th) {
       e.stopPropagation();
       if (th.dataset.done === '1') {
-        window.location.href = 'theory.html?comp=' + encodeURIComponent(th.dataset.comp);
+        window.location.href = 'theory.html?comp=' + encodeURIComponent(th.dataset.comp) + '&team=' + encodeURIComponent(s.team_id);
       } else {
         UI.toast('문항 개발 완료 필요 — items 화면에서 "문항개발 완료"를 체크하세요.', 'warning');
       }

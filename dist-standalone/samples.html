@@ -624,7 +624,7 @@ textarea.form-control {
   <div class="items-main">
     <div class="items-actionbar" id="sp-actionbar" style="display:none;">
       <button class="btn btn-primary btn-sm" data-act="sp-add">+ 샘플 추가</button>
-      <button class="btn btn-secondary btn-sm" data-act="sp-open-upload">📥 엑셀 일괄 업로드</button>
+      <button class="btn btn-secondary btn-sm" data-act="sp-open-upload">📤 엑셀 일괄 업로드</button>
       <button class="btn btn-secondary btn-sm" data-act="sp-dl-template">📄 템플릿 다운로드</button>
     </div>
     <div class="sp-filters">
@@ -633,7 +633,7 @@ textarea.form-control {
         <option value="">유형 전체</option><option value="mcq">객관식</option><option value="essay">서술형</option></select>
       <select id="sp-f-grade" class="form-control form-select"><option value="">자격등급 전체</option></select>
       <select id="sp-f-comp" class="form-control form-select"><option value="">역량태그 전체</option></select>
-      <button class="btn btn-secondary btn-sm" data-act="sp-dl-all" id="sp-dl-all-btn">📥 현재 목록 다운로드</button>
+      <button class="btn btn-secondary btn-sm" data-act="sp-dl-all" id="sp-dl-all-btn">⬇️ 현재 목록 다운로드</button>
     </div>
     <div class="item-list" id="sp-list"><div class="empty-state">불러오는 중...</div></div>
   </div>
@@ -701,7 +701,7 @@ textarea.form-control {
 
 <!-- 전체 다운로드 형식 모달 -->
 <div id="sp-dlall-modal" class="modal-backdrop" style="display:none;"><div class="modal" style="max-width:420px;">
-  <div class="modal-header"><h2 class="modal-title">📥 현재 목록 다운로드</h2>
+  <div class="modal-header"><h2 class="modal-title">⬇️ 현재 목록 다운로드</h2>
     <button class="modal-close" data-act="sp-dlall-close">✕</button></div>
   <div class="modal-body"><p class="tpl-desc">필터가 적용된 목록 <b id="sp-dlall-count">0</b>건을 받을 형식을 선택하세요.</p>
     <div class="tpl-choice">
@@ -715,7 +715,7 @@ textarea.form-control {
 
 <!-- 엑셀 업로드 모달 -->
 <div id="sp-upload-modal" class="modal-backdrop" style="display:none;"><div class="modal modal-lg">
-  <div class="modal-header"><h2 class="modal-title">📥 샘플 엑셀 일괄 업로드</h2>
+  <div class="modal-header"><h2 class="modal-title">📤 샘플 엑셀 일괄 업로드</h2>
     <button class="modal-close" data-act="sp-upload-close">✕</button></div>
   <div class="modal-body">
     <div class="upload-guide">파일을 선택하면 미리보기와 검증 결과가 표시됩니다. 유효한 행만 저장됩니다.
@@ -1320,9 +1320,9 @@ window.DEFAULT_HELP = Session.DEFAULT_HELP;
   }
 
   // ===== Theory sections =====
-  async function getTheorySection(compId) {
+  async function getTheorySection(sectionKey) {   // sectionKey = comp_id::team_id
     const { data, error } = await DB.from('theory_sections')
-      .select('content,status,updated_at').eq('section_key', compId);
+      .select('content,status,updated_at').eq('section_key', sectionKey);
     if (error) { console.error('[getTheorySection]', error); return null; }
     return data && data[0] ? data[0] : null;
   }
@@ -1338,11 +1338,22 @@ window.DEFAULT_HELP = Session.DEFAULT_HELP;
     const ok = await saveRow('theory_sections', 'section_key', draft.sectionKey, row);
     return ok ? { section_key: draft.sectionKey } : null;
   }
-  async function setDevDone(compId, v) {
+  async function setDevDone(compId, teamId, v) {
     const { data } = await DB.from('competencies').select('*').eq('comp_id', compId);
     if (!data || !data.length) return false;
     const cur = data[0];
-    return saveRow('competencies', 'comp_id', compId, Object.assign({}, cur, { dev_done: !!v }));
+    let arr = cur.dev_done_teams;
+    if (typeof arr === 'string') { try { arr = JSON.parse(arr); } catch (e) { arr = []; } }
+    if (!Array.isArray(arr)) arr = [];
+    arr = arr.filter(t => t !== teamId);
+    if (v) arr.push(teamId);
+    return saveRow('competencies', 'comp_id', compId, Object.assign({}, cur, { dev_done_teams: arr }));
+  }
+  async function getItemCountsForComp(compId) {
+    const { data, error } = await DB.from('items').select('team_id').eq('comp_id', compId);
+    if (error) { console.error('[getItemCountsForComp]', error); return {}; }
+    const m = {}; (data || []).forEach(r => { if (r.team_id) m[r.team_id] = (m[r.team_id] || 0) + 1; });
+    return m;
   }
 
   // ===== Comments =====
@@ -1410,7 +1421,7 @@ window.DEFAULT_HELP = Session.DEFAULT_HELP;
     copySampleImageToItem,
     getNotices, getNoticesForTeam, saveNotice, deleteNotice,
     getHelpTexts, getHelpText, saveHelpText,
-    getTheorySection, saveTheorySection, setDevDone,
+    getTheorySection, saveTheorySection, setDevDone, getItemCountsForComp,
     uploadErrorMessage: () => lastUploadError
   };
 })();

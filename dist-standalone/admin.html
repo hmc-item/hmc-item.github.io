@@ -1582,20 +1582,24 @@ textarea.form-control {
 .assign-row + .assign-row { border-top: 1px solid var(--border); }
 .assign-chk { flex: 1; display: flex; align-items: center; gap: 6px; cursor: pointer; }
 .assign-target { width: 90px; flex: none; }
+.th-teams-list { display:flex; flex-direction:column; gap:10px; padding:20px 28px 24px; max-height:60vh; overflow-y:auto; }
+.th-team-row { display:flex; align-items:center; gap:12px; padding:12px 14px; border:1px solid var(--border); border-radius:8px; }
+.th-team-name { font-weight:600; flex:1; }
+.th-team-stat { font-size:13px; color:var(--text-muted); white-space:nowrap; }
 </style></head>
 <body><nav id="navbar"></nav><div class="page-wrapper">
   <div class="admin-header"><div><h1 class="page-title">관리자</h1>
     <p class="page-desc">조·역량 관리 및 진척 현황</p></div>
     <a class="btn btn-secondary btn-sm" href="samples.html">🧩 샘플 문항 관리</a></div>
   <div class="admin-tabs">
-    <button class="admin-tab active" data-tab="teams">🗂️ 조 관리</button>
-    <button class="admin-tab" data-tab="comps">📋 역량 관리</button>
-    <button class="admin-tab" data-tab="dash">📊 진척 대시보드</button>
-    <button class="admin-tab" data-tab="review">💬 코멘트</button>
-    <button class="admin-tab" data-tab="notices">📢 공지 관리</button>
-    <button class="admin-tab" data-tab="help">❓ 사용법 관리</button>
-    <button class="admin-tab" data-tab="import">🔗 자동화 문항 가져오기</button>
-    <button class="admin-tab" data-tab="bank">📚 문제은행</button>
+    <button class="admin-tab active" data-tab="teams">조 관리</button>
+    <button class="admin-tab" data-tab="comps">역량 관리</button>
+    <button class="admin-tab" data-tab="dash">진척 대시보드</button>
+    <button class="admin-tab" data-tab="review">코멘트</button>
+    <button class="admin-tab" data-tab="notices">공지 관리</button>
+    <button class="admin-tab" data-tab="help">사용법 관리</button>
+    <button class="admin-tab" data-tab="import">자동화 문항 가져오기</button>
+    <button class="admin-tab" data-tab="bank">문제은행</button>
   </div>
 
   <div class="tab-content active" id="tab-teams"><div class="card">
@@ -1680,8 +1684,8 @@ textarea.form-control {
       <div class="bank-actionbar" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:10px 0;">
         <b id="bank-count">총 0개</b>
         <span style="flex:1;"></span>
-        <button class="btn btn-secondary" id="bank-dlall">📥 목록 다운로드</button>
-        <label class="btn btn-secondary" for="bank-upload-file">⬆️ 은행에 직접 업로드</label>
+        <button class="btn btn-secondary" id="bank-dlall">⬇️ 목록 다운로드</button>
+        <label class="btn btn-secondary" for="bank-upload-file">📤 은행에 직접 업로드</label>
         <input type="file" id="bank-upload-file" accept=".xlsx,.xls,.csv" style="display:none;" />
       </div>
       <div id="bank-upload-preview"></div>
@@ -1782,6 +1786,12 @@ textarea.form-control {
   <div class="modal-footer"><button class="btn btn-secondary" data-act="bank-dl-close">취소</button>
     <button class="btn btn-secondary" data-act="bank-dl-csv">CSV</button>
     <button class="btn btn-primary" data-act="bank-dl-xlsx">엑셀(xlsx)</button></div>
+</div></div>
+
+<!-- 이론서 조 선택 모달 -->
+<div id="th-teams-modal" class="modal-backdrop" style="display:none;"><div class="modal" style="max-width:480px;">
+  <div class="modal-header"><h2 class="modal-title" id="th-teams-title">이론서 — 조 선택</h2><button class="modal-close" data-act="th-teams-close">✕</button></div>
+  <div id="th-teams-list" class="th-teams-list"></div>
 </div></div>
 
 <script>/**
@@ -1971,7 +1981,23 @@ window.UI = UI;
     return compAssignments(comp).reduce(function (a, x) { return a + (Number(x.target_count) || 0); }, 0);
   }
 
-  var api = { compAssignments: compAssignments, assignmentFor: assignmentFor, compTeamIds: compTeamIds, compTotalTarget: compTotalTarget };
+  function compDevDoneTeams(comp) {
+    if (!comp) return [];
+    var a = comp.dev_done_teams;
+    if (typeof a === 'string') { try { a = JSON.parse(a); } catch (e) { a = null; } }
+    if (!Array.isArray(a)) return [];
+    var out = [];
+    for (var i = 0; i < a.length; i++) if (a[i]) out.push(a[i]);
+    return out;
+  }
+  function isDevDone(comp, teamId) {
+    return compDevDoneTeams(comp).indexOf(teamId) >= 0;
+  }
+  function theoryKey(compId, teamId) {
+    return String(compId) + '::' + String(teamId);
+  }
+
+  var api = { compAssignments: compAssignments, assignmentFor: assignmentFor, compTeamIds: compTeamIds, compTotalTarget: compTotalTarget, compDevDoneTeams: compDevDoneTeams, isDevDone: isDevDone, theoryKey: theoryKey };
   if (typeof window !== 'undefined') for (var k in api) window[k] = api[k];
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })();
@@ -2433,9 +2459,9 @@ window.DEFAULT_HELP = Session.DEFAULT_HELP;
   }
 
   // ===== Theory sections =====
-  async function getTheorySection(compId) {
+  async function getTheorySection(sectionKey) {   // sectionKey = comp_id::team_id
     const { data, error } = await DB.from('theory_sections')
-      .select('content,status,updated_at').eq('section_key', compId);
+      .select('content,status,updated_at').eq('section_key', sectionKey);
     if (error) { console.error('[getTheorySection]', error); return null; }
     return data && data[0] ? data[0] : null;
   }
@@ -2451,11 +2477,22 @@ window.DEFAULT_HELP = Session.DEFAULT_HELP;
     const ok = await saveRow('theory_sections', 'section_key', draft.sectionKey, row);
     return ok ? { section_key: draft.sectionKey } : null;
   }
-  async function setDevDone(compId, v) {
+  async function setDevDone(compId, teamId, v) {
     const { data } = await DB.from('competencies').select('*').eq('comp_id', compId);
     if (!data || !data.length) return false;
     const cur = data[0];
-    return saveRow('competencies', 'comp_id', compId, Object.assign({}, cur, { dev_done: !!v }));
+    let arr = cur.dev_done_teams;
+    if (typeof arr === 'string') { try { arr = JSON.parse(arr); } catch (e) { arr = []; } }
+    if (!Array.isArray(arr)) arr = [];
+    arr = arr.filter(t => t !== teamId);
+    if (v) arr.push(teamId);
+    return saveRow('competencies', 'comp_id', compId, Object.assign({}, cur, { dev_done_teams: arr }));
+  }
+  async function getItemCountsForComp(compId) {
+    const { data, error } = await DB.from('items').select('team_id').eq('comp_id', compId);
+    if (error) { console.error('[getItemCountsForComp]', error); return {}; }
+    const m = {}; (data || []).forEach(r => { if (r.team_id) m[r.team_id] = (m[r.team_id] || 0) + 1; });
+    return m;
   }
 
   // ===== Comments =====
@@ -2523,7 +2560,7 @@ window.DEFAULT_HELP = Session.DEFAULT_HELP;
     copySampleImageToItem,
     getNotices, getNoticesForTeam, saveNotice, deleteNotice,
     getHelpTexts, getHelpText, saveHelpText,
-    getTheorySection, saveTheorySection, setDevDone,
+    getTheorySection, saveTheorySection, setDevDone, getItemCountsForComp,
     uploadErrorMessage: () => lastUploadError
   };
 })();
@@ -2913,12 +2950,33 @@ window.XlsxTool = XlsxTool;
       '<td class="td-center">' + compTotalTarget(c) + '</td>' +
       '<td class="td-actions">' +
         '<button class="btn btn-secondary btn-sm" data-act="th-open" data-id="' + escHtml(c.comp_id) + '">📘 이론서</button>' +
-        '<button class="btn ' + (c.dev_done ? 'btn-primary' : 'btn-secondary') + ' btn-sm" data-act="th-toggle" data-id="' + escHtml(c.comp_id) + '" data-v="' + (c.dev_done ? 0 : 1) + '">' + (c.dev_done ? '✅ 완료' : '○ 미완료') + '</button>' +
         '<button class="btn btn-secondary btn-sm" data-act="edit-comp" data-id="' + escHtml(c.comp_id) + '">수정</button>' +
         '<button class="btn btn-danger btn-sm" data-act="del-comp" data-id="' + escHtml(c.comp_id) + '">삭제</button>' +
       '</td></tr>').join('')
       : '<tr><td colspan="6" class="table-empty">등록된 역량이 없습니다.</td></tr>';
     applySortIndicators('comps');
+  }
+
+  async function openTheoryTeams(compId) {
+    const comp = comps.find(c => c.comp_id === compId);
+    if (!comp) { UI.toast('역량을 찾을 수 없습니다.', 'error'); return; }
+    UI.showLoading('조 목록 불러오는 중...');
+    const counts = await API.getItemCountsForComp(compId);
+    UI.hideLoading();
+    const asg = compAssignments(comp);
+    document.getElementById('th-teams-title').textContent = comp.comp_name + ' — 조 선택';
+    document.getElementById('th-teams-list').innerHTML = asg.length
+      ? asg.map(a => {
+          const cnt = counts[a.team_id] || 0;
+          const done = isDevDone(comp, a.team_id);
+          return '<div class="th-team-row">' +
+            '<span class="th-team-name">' + escHtml(teamName(a.team_id)) + '</span>' +
+            '<span class="th-team-stat">' + cnt + ' / ' + (a.target_count || 0) + (done ? ' · ✅ 문항개발 완료' : ' · ○ 미완료') + '</span>' +
+            '<button class="btn ' + (done ? 'btn-primary' : 'btn-secondary') + ' btn-sm" data-act="th-team-open" data-comp="' + escHtml(compId) + '" data-team="' + escHtml(a.team_id) + '" data-done="' + (done ? 1 : 0) + '">📘 열기</button>' +
+            '</div>';
+        }).join('')
+      : '<div class="empty-state">배정된 조가 없습니다.</div>';
+    document.getElementById('th-teams-modal').style.display = 'flex';
   }
 
   function openCompModal(c) {
@@ -3128,14 +3186,11 @@ window.XlsxTool = XlsxTool;
   document.body.addEventListener('click', async (e) => {
     const b = e.target.closest('[data-act]'); if (!b) return;
     const act = b.dataset.act;
-    if (act === 'th-open') { window.location.href = 'theory.html?comp=' + encodeURIComponent(b.dataset.id); return; }
-    if (act === 'th-toggle') {
-      UI.showLoading('저장 중...');
-      const ok = await API.setDevDone(b.dataset.id, b.dataset.v === '1');
-      UI.hideLoading();
-      if (ok) { UI.toast('완료 상태를 변경했습니다.', 'success'); window.renderCompsTab && window.renderCompsTab(); }
-      else UI.toast('저장 실패', 'error');
-      return;
+    if (act === 'th-open') { await openTheoryTeams(b.dataset.id); return; }
+    if (act === 'th-teams-close') { document.getElementById('th-teams-modal').style.display = 'none'; return; }
+    if (act === 'th-team-open') {
+      if (b.dataset.done !== '1') { UI.toast('문항개발이 완료되지 않았습니다. 해당 조가 items 화면에서 "문항개발 완료"를 체크해야 이론서를 개발할 수 있습니다.', 'warning', 5000); return; }
+      window.location.href = 'theory.html?comp=' + encodeURIComponent(b.dataset.comp) + '&team=' + encodeURIComponent(b.dataset.team); return;
     }
     if (act === 'add-team') openTeamModal(null);
     if (act === 'team-close') UI.modal('team-modal', false);

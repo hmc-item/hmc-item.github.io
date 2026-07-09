@@ -5,13 +5,14 @@
 
   const params = new URLSearchParams(location.search);
   const compId = params.get('comp');
+  const teamId = params.get('team');
   const ctx = { comp: null, teamName: '', canEdit: false };
   let draft = null;
 
   function computeCanEdit(comp) {
-    if (!comp) return false;
+    if (!comp || !teamId) return false;
     if (s.role === 'admin' || s.role === 'coach') return true;
-    return s.role === 'sme' && compTeamIds(comp).indexOf(s.team_id) >= 0;
+    return s.role === 'sme' && s.team_id === teamId && compTeamIds(comp).indexOf(teamId) >= 0;
   }
 
   function statusWrap(status, html, label) {
@@ -39,7 +40,7 @@
   }
 
   function render() {
-    document.getElementById('th-crumb').textContent = (draft.subject || '직무') + ' › ' + draft.sectionTitle;
+    document.getElementById('th-crumb').textContent = (draft.subject || '직무') + ' › ' + draft.sectionTitle + (ctx.teamName ? ' · ' + ctx.teamName : '');
     document.getElementById('th-title').textContent = draft.sectionTitle;
     document.getElementById('th-range').textContent = draft.gradeRange || '';
     document.getElementById('th-ro').style.display = ctx.canEdit ? 'none' : 'inline-flex';
@@ -174,8 +175,12 @@
   });
 
   async function load() {
+    if (!teamId) {
+      document.getElementById('th-body').innerHTML = '<div class="empty-state">조 정보가 없습니다. 역량·조를 통해 다시 진입하세요.</div>';
+      return;
+    }
     UI.showLoading('이론서 불러오는 중...');
-    const [comps, teams, counts] = await Promise.all([API.getCompetencies(), API.getTeams(), API.getItemCounts()]);
+    const [comps, teams] = await Promise.all([API.getCompetencies(), API.getTeams()]);
     const comp = comps.find(c => c.comp_id === compId) || null;
     ctx.comp = comp;
     ctx.canEdit = computeCanEdit(comp);
@@ -184,25 +189,23 @@
       document.getElementById('th-body').innerHTML = '<div class="empty-state">역량을 찾을 수 없습니다.</div>';
       return;
     }
-    const myTid = (s.role === 'sme') ? s.team_id : (compTeamIds(comp)[0] || null);
-    const team = teams.find(t => t.team_id === myTid);
+    const team = teams.find(t => t.team_id === teamId);
     ctx.teamName = team ? team.team_name : '';
 
-    const saved = await API.getTheorySection(compId);
+    const key = theoryKey(compId, teamId);
+    const saved = await API.getTheorySection(key);
     if (saved && saved.content) {
       draft = saved.content;
     } else {
-      const items = await API.getItems({ comp_id: compId });
-      const compTids = compTeamIds(comp);
-      const sameTeam = comps.filter(c => compTeamIds(c).some(id => compTids.indexOf(id) >= 0));
-      const maxOverall = Math.max(1, ...sameTeam.map(c => counts[c.comp_id] || 0));
+      const items = await API.getItems({ comp_id: compId, team_id: teamId });
+      const maxOverall = Math.max(1, items.length);
       draft = TheoryCore.buildSection(items, {
-        maxOverall, subject: ctx.teamName, sectionTitle: comp.comp_name,
-        sectionKey: compId, certName: '',
+        maxOverall, subject: comp.category || comp.comp_name, sectionTitle: comp.comp_name,
+        sectionKey: key, certName: '',
       });
       if (!draft) {
         UI.hideLoading();
-        document.getElementById('th-body').innerHTML = '<div class="empty-state">이 역량에는 문항이 없습니다. 문항을 먼저 개발하세요.</div>';
+        document.getElementById('th-body').innerHTML = '<div class="empty-state">이 조에는 문항이 없습니다. 문항을 먼저 개발하세요.</div>';
         return;
       }
     }

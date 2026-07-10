@@ -23,6 +23,23 @@
 .empty-state { grid-column:1/-1; text-align:center; padding:48px; color:var(--text-muted); }
 @media (max-width:768px){ .comp-grid{ grid-template-columns:1fr; } }
 
+/* 다른 조 문항 둘러보기 — 역량 진척 표 */
+.other-wrap { overflow-x:auto; }
+.other-table { width:100%; border-collapse:collapse; background:var(--surface);
+  border:1.5px solid var(--border); border-radius:var(--radius-md); overflow:hidden; font-size:14px; }
+.other-table thead th { text-align:left; font-size:12px; font-weight:700; color:var(--text-muted);
+  background:var(--bg); padding:10px 14px; border-bottom:1.5px solid var(--border); white-space:nowrap; }
+.other-table tbody td { padding:11px 14px; border-bottom:1px solid var(--border); vertical-align:middle; }
+.other-table tbody tr:last-child td { border-bottom:none; }
+.other-table tbody tr.comp-row { cursor:pointer; transition:background .15s; }
+.other-table tbody tr.comp-row:hover { background:var(--bg); }
+.other-table .ot-name { font-weight:700; color:var(--text-primary); }
+.other-table .ot-cat, .other-table .ot-team { color:var(--text-muted); font-size:13px; }
+.other-table .ot-cnt { white-space:nowrap; color:var(--text-primary); }
+.other-table .ot-rate { font-weight:700; white-space:nowrap; color:var(--text-primary); }
+.other-table .ot-rate.over { color:#16a34a; }
+.other-table .ot-unres { white-space:nowrap; font-size:12px; font-weight:700; color:#b45309; }
+
 /* 공지사항 */
 .notice-box { margin-bottom: 24px; }
 .notice-head { font-size: 15px; font-weight: 700; color: #1a1a1a; margin-bottom: 10px; }

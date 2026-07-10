@@ -27,12 +27,36 @@
       '</div>';
   }
 
+  // 다른 조 역량: 진척 표(각 행=역량, 클릭 시 items 읽기전용 이동)
+  function otherTable(list, counts, unresolved, teamMap) {
+    const rows = list.map(c => {
+      const cnt = counts[c.comp_id] || 0;
+      const tgt = compTotalTarget(c);
+      const r = rate(cnt, tgt);
+      const over = r > 100;
+      const unres = unresolved[c.comp_id] || 0;
+      const teams = compTeamIds(c).map(id => teamMap[id] || '-').join(', ');
+      return '<tr class="comp-row" data-comp="' + escHtml(c.comp_id) + '" data-mine="0">' +
+        '<td class="ot-name">' + escHtml(c.comp_name) + '</td>' +
+        '<td class="ot-cat">' + escHtml(c.category || '-') + '</td>' +
+        '<td class="ot-team">' + escHtml(teams || '-') + '</td>' +
+        '<td class="ot-cnt">' + cnt + ' / ' + tgt + '</td>' +
+        '<td class="ot-rate' + (over ? ' over' : '') + '">' + r + '%' + (over ? ' 초과 ✅' : '') + '</td>' +
+        '<td class="ot-unres">' + (unres ? '💬 ' + unres : '') + '</td>' +
+        '</tr>';
+    }).join('');
+    return '<table class="other-table"><thead><tr>' +
+      '<th>역량명</th><th>카테고리</th><th>담당조</th><th>문항수/목표</th><th>달성률</th><th>미해결</th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table>';
+  }
+
   async function load() {
     UI.showLoading('역량 불러오는 중...');
-    const [comps, myCounts, allCounts] = await Promise.all([
-      API.getCompetencies(), API.getItemCounts(s.team_id), API.getItemCounts()
+    const [comps, myCounts, allCounts, teams] = await Promise.all([
+      API.getCompetencies(), API.getItemCounts(s.team_id), API.getItemCounts(), API.getTeams()
     ]);
     const unresolved = (API.getUnresolvedCounts ? await API.getUnresolvedCounts() : {});
+    const teamMap = {}; teams.forEach(t => { teamMap[t.team_id] = t.team_name; });
     UI.hideLoading();
 
     const mine = comps.filter(c => compTeamIds(c).indexOf(s.team_id) >= 0);
@@ -47,7 +71,7 @@
       ? mine.map(c => { const asg = assignmentFor(c, s.team_id); return card(c, myCounts[c.comp_id] || 0, asg ? asg.target_count : 0, unresolved, true); }).join('')
       : '<div class="empty-state">할당된 역량이 없습니다. 관리자에게 문의하세요.</div>';
     document.getElementById('other-grid').innerHTML = others.length
-      ? others.map(c => card(c, allCounts[c.comp_id] || 0, compTotalTarget(c), unresolved, false)).join('')
+      ? otherTable(others, allCounts, unresolved, teamMap)
       : '<div class="empty-state">다른 조 역량이 없습니다.</div>';
   }
 
@@ -90,7 +114,7 @@
       }
       return;
     }
-    const card = e.target.closest('.comp-card'); if (!card) return;
+    const card = e.target.closest('.comp-card, .comp-row'); if (!card) return;
     const mine = card.dataset.mine === '1';
     window.location.href = 'items.html?comp_id=' + encodeURIComponent(card.dataset.comp) + (mine ? '&mine=1' : '');
   });

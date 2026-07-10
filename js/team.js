@@ -27,27 +27,53 @@
       '</div>';
   }
 
-  // 다른 조 역량: 진척 표(각 행=역량, 클릭 시 items 읽기전용 이동)
-  function otherTable(list, counts, unresolved, teamMap) {
-    const rows = list.map(c => {
-      const cnt = counts[c.comp_id] || 0;
+  // 다른 조 역량: 진척 표(각 행=역량, 헤더 클릭 정렬, 클릭 시 items 읽기전용 이동)
+  const otherState = { list: [], counts: {}, teamMap: {} };
+  const otherSort = { key: null, dir: 1 };
+  const OTHER_COLS = {
+    name    : { type: 'str', get: c => c.comp_name },
+    category: { type: 'str', get: c => c.category || '' },
+    team    : { type: 'str', get: c => compTeamIds(c).map(id => otherState.teamMap[id] || '').join(', ') },
+    count   : { type: 'num', get: c => otherState.counts[c.comp_id] || 0 },
+    rate    : { type: 'num', get: c => rate(otherState.counts[c.comp_id] || 0, compTotalTarget(c)) },
+  };
+  function sortOther(list) {
+    const st = otherSort; if (!st.key) return list.slice();
+    const col = OTHER_COLS[st.key]; if (!col) return list.slice();
+    return list.slice().sort((a, b) => {
+      const va = col.get(a), vb = col.get(b);
+      if (col.type === 'num') return ((Number(va) || 0) - (Number(vb) || 0)) * st.dir;
+      return String(va == null ? '' : va).localeCompare(String(vb == null ? '' : vb), 'ko') * st.dir;
+    });
+  }
+  function thCell(key, label) {
+    const cls = 'sortable' + (otherSort.key === key ? (otherSort.dir === 1 ? ' sorted-asc' : ' sorted-desc') : '');
+    return '<th class="' + cls + '" data-sort-key="' + key + '">' + label + '</th>';
+  }
+  function otherTable(list) {
+    const rows = sortOther(list).map(c => {
+      const cnt = otherState.counts[c.comp_id] || 0;
       const tgt = compTotalTarget(c);
       const r = rate(cnt, tgt);
       const over = r > 100;
-      const unres = unresolved[c.comp_id] || 0;
-      const teams = compTeamIds(c).map(id => teamMap[id] || '-').join(', ');
+      const teams = compTeamIds(c).map(id => otherState.teamMap[id] || '-').join(', ');
       return '<tr class="comp-row" data-comp="' + escHtml(c.comp_id) + '" data-mine="0">' +
         '<td class="ot-name">' + escHtml(c.comp_name) + '</td>' +
         '<td class="ot-cat">' + escHtml(c.category || '-') + '</td>' +
         '<td class="ot-team">' + escHtml(teams || '-') + '</td>' +
         '<td class="ot-cnt">' + cnt + ' / ' + tgt + '</td>' +
         '<td class="ot-rate' + (over ? ' over' : '') + '">' + r + '%' + (over ? ' 초과 ✅' : '') + '</td>' +
-        '<td class="ot-unres">' + (unres ? '💬 ' + unres : '') + '</td>' +
         '</tr>';
     }).join('');
     return '<table class="other-table"><thead><tr>' +
-      '<th>역량명</th><th>카테고리</th><th>담당조</th><th>문항수/목표</th><th>달성률</th><th>미해결</th>' +
+      thCell('name', '역량명') + thCell('category', '카테고리') + thCell('team', '담당조') +
+      thCell('count', '문항수/목표') + thCell('rate', '달성률') +
       '</tr></thead><tbody>' + rows + '</tbody></table>';
+  }
+  function renderOther() {
+    document.getElementById('other-grid').innerHTML = otherState.list.length
+      ? otherTable(otherState.list)
+      : '<div class="empty-state">다른 조 역량이 없습니다.</div>';
   }
 
   async function load() {
@@ -70,9 +96,10 @@
     document.getElementById('comp-grid').innerHTML = mine.length
       ? mine.map(c => { const asg = assignmentFor(c, s.team_id); return card(c, myCounts[c.comp_id] || 0, asg ? asg.target_count : 0, unresolved, true); }).join('')
       : '<div class="empty-state">할당된 역량이 없습니다. 관리자에게 문의하세요.</div>';
-    document.getElementById('other-grid').innerHTML = others.length
-      ? otherTable(others, allCounts, unresolved, teamMap)
-      : '<div class="empty-state">다른 조 역량이 없습니다.</div>';
+    otherState.list = others;
+    otherState.counts = allCounts;
+    otherState.teamMap = teamMap;
+    renderOther();
   }
 
   async function loadNotices() {
@@ -104,6 +131,13 @@
   })();
 
   document.querySelector('.page-wrapper').addEventListener('click', (e) => {
+    const sortTh = e.target.closest('.other-table th[data-sort-key]');
+    if (sortTh) {
+      const key = sortTh.dataset.sortKey;
+      if (otherSort.key === key) otherSort.dir = -otherSort.dir; else { otherSort.key = key; otherSort.dir = 1; }
+      renderOther();
+      return;
+    }
     const th = e.target.closest('.th-open');
     if (th) {
       e.stopPropagation();

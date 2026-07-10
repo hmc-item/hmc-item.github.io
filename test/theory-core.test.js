@@ -24,6 +24,17 @@ eq('splitExplain.empty', [sp3.basis, sp3.wrong, sp3.theory], ['', '', '']);
 const sp4 = T.splitExplain('정답 근거: 이것이 정답의 이유입니다.');
 ok('splitExplain.partialMarker', sp4.basis.indexOf('정답의 이유') >= 0 && sp4.theory === '');
 
+// --- classifyExplainKind: 강한 안전신호 → mis, 이론/약한신호 → core ---
+eq('classify.caution.주의', T.classifyExplainKind('회전하는 기계는 작업자 쪽으로 튈 수 있으므로 주의해야 한다.'), 'mis');
+eq('classify.caution.보호구', T.classifyExplainKind('작업 시 반드시 보호구를 착용한다.'), 'mis');
+eq('classify.caution.파손', T.classifyExplainKind('담금질 재료는 취성이 커서 두드리면 파손된다.'), 'mis');
+eq('classify.theory.해야한다', T.classifyExplainKind('절삭공구는 고온 경도가 높아야 한다. 마찰계수가 작아야 한다.'), 'core');
+eq('classify.theory.반드시', T.classifyExplainKind('왼나사는 도면에 반드시 따로 기입한다.'), 'core');
+eq('classify.theory.정의', T.classifyExplainKind('공기마이크로미터는 비교측정기의 하나이다.'), 'core');
+// --- splitExplain: 폴백 플래그 ---
+ok('splitExplain.fallbackTrue', T.splitExplain('그냥 평문입니다.').fallback === true);
+ok('splitExplain.fallbackFalse', T.splitExplain('- 관련 이론: PLC 필터는 노이즈를 차단함.').fallback === false);
+
 // --- buildSection: 평문 해설 문항 → 핵심이론이 문항 수만큼 생성 ---
 const plainItems = [
   { item_id: 'it_1', grade: '2급', explanation: '절삭공구는 고온 경도가 높아야 한다. 내마모성이 좋아야 한다.' },

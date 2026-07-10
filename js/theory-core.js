@@ -31,15 +31,21 @@
     return t.split(/\n/).map(l => _isBullet(l) ? l : unify(l)).join('\n');
   }
 
+  const CAUTION_RE = /주의|유의|위험|안전|사고|부상|화상|감전|폭발|파손|착용|보호구/;
+  function classifyExplainKind(text) {
+    return CAUTION_RE.test(String(text || '')) ? 'mis' : 'core';
+  }
+
   function splitExplain(explain) {
     const ex = String(explain || '').replace(/\s*---\s*/g, ' ');
     const grab = re => { const m = ex.match(re); return m ? m[1].trim() : ''; };
     const basis  = grab(/정답\s*근거\s*[:：]?\s*([\s\S]+?)(?=오답별|관련\s*이론|$)/);
     const wrong  = grab(/오답별[^:：]*[:：]?\s*([\s\S]+?)(?=관련\s*이론|$)/);
     let   theory = grab(/관련\s*이론\s*[:：]?\s*([\s\S]+)/);
-    // 마커(정답 근거/오답별/관련 이론)가 전혀 없는 평문 해설이면 해설 전체를 핵심이론으로 사용
-    if (!theory && !basis && !wrong) theory = ex.trim();
-    return { basis, wrong, theory };
+    let   fallback = false;
+    // 마커(정답 근거/오답별/관련 이론)가 전혀 없는 평문 해설이면 해설 전체를 대상으로 폴백
+    if (!theory && !basis && !wrong) { theory = ex.trim(); fallback = true; }
+    return { basis, wrong, theory, fallback };
   }
 
   function extractTerms(theory) {
@@ -130,7 +136,7 @@
   }
 
   return {
-    clean, normalizeStyle, splitExplain, extractTerms,
+    clean, normalizeStyle, splitExplain, extractTerms, classifyExplainKind,
     frequencyStars, buildObjective,
     gradeRank, sortGrades, sectionGradeRange, GRADE_ORDER,
     buildSection,

@@ -34,11 +34,12 @@
   function splitExplain(explain) {
     const ex = String(explain || '').replace(/\s*---\s*/g, ' ');
     const grab = re => { const m = ex.match(re); return m ? m[1].trim() : ''; };
-    return {
-      basis:  grab(/정답\s*근거\s*[:：]?\s*([\s\S]+?)(?=오답별|관련\s*이론|$)/),
-      wrong:  grab(/오답별[^:：]*[:：]?\s*([\s\S]+?)(?=관련\s*이론|$)/),
-      theory: grab(/관련\s*이론\s*[:：]?\s*([\s\S]+)/),
-    };
+    const basis  = grab(/정답\s*근거\s*[:：]?\s*([\s\S]+?)(?=오답별|관련\s*이론|$)/);
+    const wrong  = grab(/오답별[^:：]*[:：]?\s*([\s\S]+?)(?=관련\s*이론|$)/);
+    let   theory = grab(/관련\s*이론\s*[:：]?\s*([\s\S]+)/);
+    // 마커(정답 근거/오답별/관련 이론)가 전혀 없는 평문 해설이면 해설 전체를 핵심이론으로 사용
+    if (!theory && !basis && !wrong) theory = ex.trim();
+    return { basis, wrong, theory };
   }
 
   function extractTerms(theory) {

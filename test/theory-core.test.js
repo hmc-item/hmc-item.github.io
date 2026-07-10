@@ -14,9 +14,25 @@ ok('splitExplain.basis', sp.basis.indexOf('근거문') >= 0);
 ok('splitExplain.wrong', sp.wrong.indexOf('오답1') >= 0 && sp.wrong.indexOf('관련 이론') < 0);
 ok('splitExplain.theory', sp.theory.indexOf('입력 필터') >= 0);
 
-// --- splitExplain: 3구획 없는 문항 방어 ---
+// --- splitExplain: 마커 없는 평문 해설 → 전체를 핵심이론(theory)으로 폴백 ---
 const sp2 = T.splitExplain('그냥 평문 해설입니다.');
-eq('splitExplain.none', [sp2.basis, sp2.wrong, sp2.theory], ['', '', '']);
+eq('splitExplain.none', [sp2.basis, sp2.wrong, sp2.theory], ['', '', '그냥 평문 해설입니다.']);
+// 빈 해설은 그대로 전부 빈값
+const sp3 = T.splitExplain('');
+eq('splitExplain.empty', [sp3.basis, sp3.wrong, sp3.theory], ['', '', '']);
+// 마커가 하나라도 있으면 구획 파싱 유지(폴백 안 함)
+const sp4 = T.splitExplain('정답 근거: 이것이 정답의 이유입니다.');
+ok('splitExplain.partialMarker', sp4.basis.indexOf('정답의 이유') >= 0 && sp4.theory === '');
+
+// --- buildSection: 평문 해설 문항 → 핵심이론이 문항 수만큼 생성 ---
+const plainItems = [
+  { item_id: 'it_1', grade: '2급', explanation: '절삭공구는 고온 경도가 높아야 한다. 내마모성이 좋아야 한다.' },
+  { item_id: 'it_2', grade: '3급', explanation: '공기마이크로미터(Air Micrometer)는 비교측정기의 하나이다.' },
+];
+const bs = T.buildSection(plainItems, { maxOverall: 2, sectionTitle: '측정', sectionKey: 'k' });
+eq('buildSection.coreTheory.len', bs.coreTheory.length, 2);
+ok('buildSection.coreTheory.text', bs.coreTheory.some(c => c.text.indexOf('절삭공구') >= 0));
+ok('buildSection.glossary', bs.glossary.indexOf('공기마이크로미터(Air Micrometer)') >= 0);
 
 // --- extractTerms: "한글(English)" 추출·중복제거 ---
 eq('extractTerms', T.extractTerms('필터(Input Filter)와 필터(Input Filter) 그리고 제어(Control)'),

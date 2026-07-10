@@ -29,12 +29,18 @@
   }
   function itemCtrl(kind, id, hasRaw) {
     if (!ctx.canEdit) return '';
+    const reclass = kind === 'core'
+      ? '<button class="btn btn-secondary" data-act="reclass" data-to="mis" data-kind="core" data-id="' + escHtml(id) + '">→주의</button>'
+      : kind === 'mis'
+      ? '<button class="btn btn-secondary" data-act="reclass" data-to="core" data-kind="mis" data-id="' + escHtml(id) + '">→이론</button>'
+      : '';
     return '<div class="th-itemctrl">' +
       '<button class="btn btn-secondary" data-act="up" data-kind="' + kind + '" data-id="' + escHtml(id) + '">▲</button>' +
       '<button class="btn btn-secondary" data-act="down" data-kind="' + kind + '" data-id="' + escHtml(id) + '">▼</button>' +
       '<input class="th-num" type="number" min="1" data-kind="' + kind + '" data-id="' + escHtml(id) + '" placeholder="#">' +
       '<button class="btn btn-secondary" data-act="edit" data-kind="' + kind + '" data-id="' + escHtml(id) + '">✎</button>' +
       (hasRaw ? '<button class="btn btn-secondary" data-act="raw" data-kind="' + kind + '" data-id="' + escHtml(id) + '">원문</button>' : '') +
+      reclass +
       '<button class="btn btn-danger" data-act="del" data-kind="' + kind + '" data-id="' + escHtml(id) + '">🗑</button>' +
       '</div>';
   }
@@ -47,10 +53,12 @@
     document.getElementById('th-actions').style.display = ctx.canEdit ? 'flex' : 'none';
 
     const parts = [];
-    // ① 출제기준 연계
-    parts.push(sec('① 출제기준 연계',
-      statusWrap(draft.examBasis.status, '<div>' + escHtml(draft.examBasis.value) + '</div>', '국가기술자격명 입력 필요') +
-      (ctx.canEdit ? '<div class="th-itemctrl"><button class="btn btn-secondary" data-act="edit-exam">✎ 편집</button></div>' : '')));
+    // ① 출제기준 연계 — 미입력이면 읽기전용에는 숨김
+    if (draft.examBasis.status !== '__SME_INPUT__' || ctx.canEdit) {
+      parts.push(sec('① 출제기준 연계',
+        statusWrap(draft.examBasis.status, '<div>' + escHtml(draft.examBasis.value) + '</div>', '국가기술자격명 입력 필요') +
+        (ctx.canEdit ? '<div class="th-itemctrl"><button class="btn btn-secondary" data-act="edit-exam">✎ 편집</button></div>' : '')));
+    }
     // ② 학습목표
     parts.push(sec('② 학습목표' + (ctx.canEdit ? ' <button class="btn btn-secondary" data-act="add" data-kind="obj">＋</button>' : ''),
       draft.objectives.map(o => '<div class="th-item" data-obj="' + escHtml(o.id) + '">' +
@@ -82,12 +90,16 @@
         '<div>' + escHtml(m.text).replace(/\n/g, '<br>') + '</div>' +
         itemCtrl('mis', m.id, true) + '</div>').join('') ||
       '<div class="empty-state">추출된 항목이 없습니다.</div>'));
-    // ⑨ 현장적용사례
-    parts.push(sec('⑨ 현장 적용 사례',
-      draft.fieldCases.map(f => '<div class="th-item" data-fc="' + escHtml(f.id) + '">' + badge(f.linkedGrades) +
-        (f.edited ? '<span class="th-badge edited">수정됨</span>' : '') +
-        statusWrap(f.status, '<div>' + escHtml(f.text).replace(/\n/g, '<br>') + '</div>', '현장 사례 입력 필요') +
-        itemCtrl('fc', f.id, false) + '</div>').join('')));
+    // ⑨ 현장 적용 사례 — 내용 있는 항목만 표시, 빈 데이터는 읽기전용에는 숨김
+    const fcContent = draft.fieldCases.filter(f => f.status !== '__SME_INPUT__' && (f.text || '').trim());
+    if (fcContent.length || ctx.canEdit) {
+      parts.push(sec('⑨ 현장 적용 사례' + (ctx.canEdit ? ' <button class="btn btn-secondary" data-act="add" data-kind="fc">＋</button>' : ''),
+        fcContent.map(f => '<div class="th-item" data-fc="' + escHtml(f.id) + '">' + badge(f.linkedGrades) +
+          (f.edited ? '<span class="th-badge edited">수정됨</span>' : '') +
+          '<div>' + escHtml(f.text).replace(/\n/g, '<br>') + '</div>' +
+          itemCtrl('fc', f.id, false) + '</div>').join('') ||
+        (ctx.canEdit ? '<div class="empty-text">현장 사례를 추가하세요.</div>' : '')));
+    }
 
     document.getElementById('th-body').innerHTML = parts.join('');
   }
@@ -135,6 +147,18 @@
     if (act === 'add' && kind === 'obj') {
       const next = prompt('학습목표 추가:', ''); if (next == null) return;
       draft.objectives.push({ id: 'obj_' + Date.now(), text: next.trim(), edited: true }); render();
+    }
+    if (act === 'add' && kind === 'fc') {
+      const next = prompt('현장 사례 추가:', ''); if (next == null) return;
+      draft.fieldCases.push({ id: 'fc_' + Date.now(), text: next.trim(), sourceItemId: '', linkedGrades: [], status: next.trim() ? 'ok' : '__SME_INPUT__', edited: true });
+      render();
+    }
+    if (act === 'reclass') {
+      const to = b.dataset.to; // 'mis' | 'core'
+      const arr = arrOf(kind); const i = findIdx(kind, id); if (i < 0) return;
+      const [it] = arr.splice(i, 1); it.edited = true;
+      arrOf(to).push(it);
+      render();
     }
     if (act === 'add-term') {
       const el = document.getElementById('th-newterm'); const v = el ? el.value.trim() : '';

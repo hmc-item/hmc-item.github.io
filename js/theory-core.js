@@ -92,29 +92,39 @@
     const gradeCount = {};
 
     ordered.forEach((it, i) => {
-      const { wrong, theory } = splitExplain(it.explanation); // 정답근거는 문항 자산이라 미사용
+      const { wrong, theory, fallback } = splitExplain(it.explanation); // 정답근거는 문항 자산이라 미사용
       const sid = clean(it.item_id);
       const g = clean(it.grade);
       if (g) { allGrades.push(g); gradeCount[g] = (gradeCount[g] || 0) + 1; }
       const bt = clean(it.bloom); if (bt) bloomTags.push(bt);
       if (sid) linkedItems.push({ itemId: sid, grade: g });
 
-      extractTerms(theory).forEach(t => glossary.add(t));
+      extractTerms(theory).forEach(t => glossary.add(t)); // 라우팅 무관, 해설 전체에서 용어 추출
 
-      if (theory) coreTheory.push({
-        id: 'th_' + (i + 1), text: normalizeStyle(theory), _raw: theory,
-        sourceItemId: sid, linkedGrades: g ? [g] : [], edited: false,
-      });
-      if (wrong) commonMistakes.push({
-        id: 'mis_' + (i + 1), text: normalizeStyle(wrong), _raw: wrong,
-        sourceItemId: sid, linkedGrades: g ? [g] : [], edited: false,
-      });
+      const linked = g ? [g] : [];
+      if (fallback) {
+        // 마커 없는 평문 해설: 안전 휴리스틱으로 핵심이론↔흔한실수 라우팅(문항당 1항목)
+        if (theory) {
+          const kind = classifyExplainKind(theory);
+          const card = { id: (kind === 'mis' ? 'mis_' : 'th_') + (i + 1), text: normalizeStyle(theory), _raw: theory, sourceItemId: sid, linkedGrades: linked, edited: false };
+          (kind === 'mis' ? commonMistakes : coreTheory).push(card);
+        }
+      } else {
+        // 마커 형식 해설: 기존 3구획 파싱 유지
+        if (theory) coreTheory.push({ id: 'th_' + (i + 1), text: normalizeStyle(theory), _raw: theory, sourceItemId: sid, linkedGrades: linked, edited: false });
+        if (wrong) commonMistakes.push({ id: 'mis_' + (i + 1), text: normalizeStyle(wrong), _raw: wrong, sourceItemId: sid, linkedGrades: linked, edited: false });
+      }
       const ctx = clean(it.context); // items 테이블엔 없음 → 항상 빈값(__SME_INPUT__)
       fieldCases.push(ctx
         ? { id: 'fc_' + (i + 1), text: ctx, sourceItemId: sid, linkedGrades: g ? [g] : [], status: 'ok', edited: false }
         : { id: 'fc_' + (i + 1), text: '', sourceItemId: sid, linkedGrades: g ? [g] : [], status: '__SME_INPUT__', edited: false });
     });
 
+    const dedupeByText = arr => {
+      const seen = new Set(), out = [];
+      for (const x of arr) { if (seen.has(x.text)) continue; seen.add(x.text); out.push(x); }
+      return out;
+    };
     const certName = clean(opts.certName);
     return {
       sectionKey: opts.sectionKey || sectionTitle,
@@ -126,9 +136,9 @@
       frequency: frequencyStars(items.length, opts.maxOverall),
       gradeDistribution: gradeCount,
       stats: { unitCount: items.length, termCount: glossary.size },
-      coreTheory,
+      coreTheory: dedupeByText(coreTheory),
       glossary: [...glossary],
-      commonMistakes,
+      commonMistakes: dedupeByText(commonMistakes),
       fieldCases,
       linkedItems,
       meta: { bloomTags },

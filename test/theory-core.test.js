@@ -45,6 +45,27 @@ eq('buildSection.coreTheory.len', bs.coreTheory.length, 2);
 ok('buildSection.coreTheory.text', bs.coreTheory.some(c => c.text.indexOf('절삭공구') >= 0));
 ok('buildSection.glossary', bs.glossary.indexOf('공기마이크로미터(Air Micrometer)') >= 0);
 
+// --- buildSection: 안전문항은 흔한실수로 라우팅 ---
+const mixItems = [
+  { item_id: 'it_a', grade: '2급', explanation: '베어링은 회전운동을 지지하는 요소이다.' },
+  { item_id: 'it_b', grade: '2급', explanation: '회전체 작업 시 장갑 착용은 말림 위험이 있어 주의한다.' },
+];
+const bm = T.buildSection(mixItems, { maxOverall: 2, sectionTitle: '요소', sectionKey: 'k' });
+eq('route.core.len', bm.coreTheory.length, 1);
+eq('route.mis.len', bm.commonMistakes.length, 1);
+ok('route.core.text', bm.coreTheory[0].text.indexOf('베어링') >= 0);
+ok('route.mis.text', bm.commonMistakes[0].text.indexOf('착용') >= 0);
+// --- buildSection: 완전일치 중복 제거(카드), 단 통계는 문항수 유지 ---
+const dupItems = [
+  { item_id: 'it_1', grade: '2급', explanation: '동일한 이론 문장이다.' },
+  { item_id: 'it_2', grade: '2급', explanation: '동일한 이론 문장이다.' },
+  { item_id: 'it_3', grade: '3급', explanation: '다른 이론 문장이다.' },
+];
+const bd = T.buildSection(dupItems, { maxOverall: 3, sectionTitle: 'X', sectionKey: 'k' });
+eq('dedup.core.len', bd.coreTheory.length, 2);
+eq('dedup.stats.unitCount', bd.stats.unitCount, 3);
+eq('dedup.linkedItems.len', bd.linkedItems.length, 3);
+
 // --- extractTerms: "한글(English)" 추출·중복제거 ---
 eq('extractTerms', T.extractTerms('필터(Input Filter)와 필터(Input Filter) 그리고 제어(Control)'),
    ['필터(Input Filter)', '제어(Control)']);

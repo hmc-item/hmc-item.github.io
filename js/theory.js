@@ -167,7 +167,7 @@
     if (act === 'del-term') { draft.glossary.splice(Number(b.dataset.i), 1); render(); }
 
     if (act === 'save') {
-      draft.subject = ctx.teamName; draft.sectionTitle = ctx.comp.comp_name; draft.sectionKey = compId;
+      draft.subject = ctx.teamName; draft.sectionTitle = ctx.comp.comp_name; draft.sectionKey = theoryKey(compId, teamId);
       UI.showLoading('저장 중...');
       const r = await API.saveTheorySection(draft);
       UI.hideLoading();
@@ -178,13 +178,11 @@
         .some(k => (draft[k] || []).some(x => x.edited));
       if (hasEdit && !(await UI.confirm('편집한 내용이 모두 사라지고 문항에서 다시 생성합니다. 계속할까요?'))) return;
       UI.showLoading('재생성 중...');
-      const [items, comps, counts] = await Promise.all([API.getItems({ comp_id: compId }), API.getCompetencies(), API.getItemCounts()]);
-      const ctxTids = compTeamIds(ctx.comp);
-      const sameTeam = comps.filter(c => compTeamIds(c).some(id => ctxTids.indexOf(id) >= 0));
-      const maxOverall = Math.max(1, ...sameTeam.map(c => counts[c.comp_id] || 0));
+      const items = await API.getItems({ comp_id: compId, team_id: teamId }); // 로드 경로와 동일하게 내 조 문항만
+      const maxOverall = Math.max(1, items.length);
       const nd = TheoryCore.buildSection(items, {
         maxOverall, subject: ctx.teamName, sectionTitle: ctx.comp.comp_name,
-        sectionKey: compId, certName: draft.examBasis.value || '',
+        sectionKey: theoryKey(compId, teamId), certName: draft.examBasis.value || '',
       });
       UI.hideLoading();
       if (nd) { draft = nd; render(); UI.toast('재생성되었습니다.', 'success'); }
